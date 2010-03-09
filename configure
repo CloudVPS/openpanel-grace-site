@@ -1,0 +1,12 @@
+#!/bin/sh
+cd grace2html && ./configure $* || exit 1
+cd ..
+cd htparse && ./configure || exit 1
+cd ..
+cd mksite && ./configure || exit 1
+cd ..
+cd parsechanges && ./configure || exit 1
+cd ..
+cd xml2html && ./configure || exit 1
+cd ..
+
