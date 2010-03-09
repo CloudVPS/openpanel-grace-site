@@ -1,4 +1,5 @@
 #!/bin/bash
+mkdir -p site
 cp *.png *.jpg site/
 cp *.css site/
 ./build_toc
