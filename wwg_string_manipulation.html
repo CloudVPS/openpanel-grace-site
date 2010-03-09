@@ -390,7 +390,8 @@
 	void doSomething (const value &v) 
 	{ 
 		string out, tmpl; 
-		tmpl = "Hello, $firstname$.\nYou are visitor number $#visitor$\n"; 
+		tmpl = "Hello, $firstname$.\nYou are visitor number $#visitor$\n"
+		       "It's $?goodweather:a lovely:an awful$ day.\n";
 		tmpl = strutil::valueparse (tmpl, v); 
 	} 
   %endcode
@@ -428,9 +429,9 @@
       <td>Access a child value, equivalent to <tt>var["varname"]["subvar"]</tt></td>
     </tr>
     <tr>
-      <td><tt>$$?varname:string1:string2$$</tt></td>
-      <td>Prints "string1" if <tt>var["varname"]</tt> equals <b>true</b>,
-          and "string2" if it equals false.</td>
+      <td><tt>$$?varname:str1:str2$$</tt></td>
+      <td>Prints "str1" if <tt>var["varname"]</tt> equals <b>true</b>,
+          and "str2" if it equals false.</td>
     </tr>
   </table>
 
