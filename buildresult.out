@@ -1,0 +1,9 @@
+$$ cd storpelcount.app
+$$ cd Contents
+$$ find . -type f                  
+./Configuration Defaults/com.openpanel.apps.storpelcount.conf.xml
+./Darwin.powerpc/storpelcount.exe
+./Resources/grace.runoptions.xml
+./Schemas/com.openpanel.apps.storpelcount.schema.xml
+./Schemas/com.openpanel.apps.storpelcount.validator.xml
+$$

@@ -1,0 +1,358 @@
+
+@section main
+<<page title="Building Applications" idx="6">>
+  <h1>Building Applications</h1>
+  <p>
+	Grace has a powerful application model that can take care of a lot
+	of grind work. In cases where your application needs to carry a lot
+	of internal resources, Grace can also build OSX-style .app bundles.
+	This makes it easier for your application to refrain from leaving
+	scent marks all over the filesystem.
+  </p>
+  
+  <<toc>>
+
+  <h2>Using mkproject</h2>
+  <p>
+    The <sh>grace mkproject</sh> command creates a project
+    directory skeleton for new Grace projects. Here's how
+    you use it:
+  </p>
+  
+  %terminal mkproject.out
+  
+  <p>
+    A skeleton headerfile <file>storpelcount.h</file> has been created
+    that will look like this:
+  </p>
+  
+  %code skeleton_app.cpp
+	#ifndef _storpelcount_H
+	#define _storpelcount_H 1
+	#include <grace/application.h>
+	
+	//  -------------------------------------------------------------------------
+	/// Implementation template for application config.
+	//  -------------------------------------------------------------------------
+	typedef configdb<class storpelcountApp> appconfig;
+	
+	//  -------------------------------------------------------------------------
+	/// Main application class.
+	//  -------------------------------------------------------------------------
+	class storpelcountApp : public application
+	{
+	public:
+					 storpelcountApp (void) :
+						application ("com.openpanel.apps.storpelcount")
+					 {
+					 }
+					~storpelcountApp (void)
+					 {
+					 }
+	
+		int			 main (void);
+	
+	protected:
+		appconfig	 conf;
+	};
+	
+	#endif
+  %endcode
+  
+  <p>
+    A skeleton implementation file <file>main.cpp</file> contains a stub 
+    <sym>application::main</sym> virtual method implementation:
+  </p>
+  
+  %code skeleton_main.cpp
+	#include "storpelcount.h"
+	
+	$appobject(storpelcountApp);
+	
+	//  =========================================================================
+	/// Main method.
+	//  =========================================================================
+	int storpelcountApp::main (void)
+	{
+		string conferr;
+		if (! conf.load ("com.openpanel.apps.storpelcount", conferr))
+		{
+			ferr.writeln ("%% Error loading configuration: %s" %format (conferr));
+			return 1;
+		}
+		return 0;
+	}
+  %endcode
+
+
+  <h2>Command Line Options</h2>
+  <p>
+    The <class>application</class> class takes care of a lot of
+    initialization, including the command line argument parser. You can define
+    command line flags by tweaking the <sym>application::opt</sym> value
+    object. If your project builds ass an app-bundle, you can define further
+    command line options in <file>rsrc/grace.runoptions.xml</file>.
+    Through the <sh>mkapp</sh> tool, this file will get copied to
+    <file>Contents/Resources/</file> inside the app bundle. The
+    <class>application</class> constructor will attempt to load
+    <file>"rsrc:grace.runoptions.xml"</file>. Here's a sample:
+  </p>
+  
+  %xmlcode runoptions_xml
+	<?xml version="1.0"?>
+	<grace.runoptions>
+	    <grace.option id="-h">
+	        <grace.long>--help</grace.long>
+	    </grace.option>
+	    <grace.option id="-i">
+	        <grace.long>--input-file</grace.long>
+	    </grace.option>
+	    <grace.option id="--help">
+	        <grace.argc>0</grace.argc>
+	    </grace.option>
+	    <grace.option id="--input-file">
+	        <grace.argc>1</grace.argc>
+	        <grace.default>/var/db/storpels</grace.default>
+	        <grace.help>Storpel file to process</grace.help>
+	    </grace.option>
+	</grace.runoptions>
+  %endcode
+  
+  <p>
+    In the main method, we can access the parsed command line options
+    through <sym>application::argv</sym>:
+  </p>
+  
+  %code argv.cpp
+	int storpelcountApp::main (void)
+	{
+		string infile = argv["--input-file"];
+		string conferr;
+		
+		if (! conf.load ("com.openpanel.apps.storpelcount", conferr))
+		{
+			ferr.writeln ("%% Error loading configuration: %s" %format (conferr));
+			return 1;
+		}
+		
+		if (! fs.exists (infile))
+		{
+			ferr.writeln ("File '%s' not found" %format (infile));
+			return 1;
+		}
+		
+		fout.writeln ("Processing '%s'" %format (infile));
+		return 0;
+	}
+  %endcode
+  
+
+  <h2>Resources Inside the Application Bundle</h2>
+  <p>
+  	If you look at the project Makefile, you will see that it goes
+  	through a somewhat more elaborate process to create your target
+  	application:
+  	
+  	<ol>
+  	  <li> Source files are turned into object files the usual way. </li>
+  	  <li> The object files are linked into <file>appname.exe</file>. </li>
+  	  <li> The <sh>grace mkapp</sh> tool is used to create a bundle named
+  	       <file>appname.app</file> and a softlink
+  	       <file>appname</file> that points to the executable inside the
+  	       bundle directory. </li>
+	</ol>
+	
+	Here is how it looks in action: 
+  </p>
+  
+  %terminal build.out
+  
+  <p>
+    Files in the <file>rsrc</file> directory are installed using the following
+    rules:
+    
+    <table class="doc">
+      <tr>
+        <th>File matches</th>
+        <th>Description</th>
+        <th>Installed to</th>
+        <th>Alias Path</th>
+      </tr>
+      <tr>
+        <td>*.conf.xml</td>
+        <td>Default configuration files</td>
+        <td><file>Contents/Configuration Defaults</file></td>
+        <td><file>conf:</file></td>
+      </tr>
+      <tr>
+        <td>*.schema.xml <br/>
+        	*.validator.xml</td>
+        <td>XML Schema definitions</td>
+        <td><file>Contents/Schemas</file></td>
+        <td><file>schema:</file></td>
+      </tr>
+      <tr>
+        <td>*.thtml</td>
+        <td>Scripted HTML templates</td>
+        <td><file>Contents/Templates</file></td>
+        <td><file>tmpl:</file></td>
+      </tr>
+      <tr>
+        <td>*</td>
+        <td><i>Anything else</i></td>
+        <td><file>Contents/Resources</file></td>
+        <td><file>rsrc:</file></td>
+      </tr>
+    </table>
+    
+    After <sh>grace mkapp</sh> did its magic you should end up with a
+    situation like this:
+  </p>
+  
+  %terminal buildresult.out
+  
+
+  <h2>The Configuration File</h2>
+  <p>
+	You my have noticed that the <file>conf.xml</file> got installed inside
+	the application bundle. Obviously this isn't really useful for user
+	configuration. This is where the <file>conf:</file> alias path comes to
+	the rescue. The <sh>grace mkconf</sh> tool installs a copy of the
+	default configuration into a suitable location:
+	
+	<table class="doc">
+	  <tr>
+		<th>Condition</th>
+		<th>Install Location</th>
+	  </tr>
+	  <tr>
+		<td>If the current user is <b>root</b>:</td>
+		<td><file>/etc/conf/$$appid</file></td>
+	  </tr>
+	  <tr>
+		<td>If the platform is Mac OS X:</td>
+		<td><file>home:Library/Preferences/$$appid</file></td>
+	  </tr>
+	  <tr>
+		<td>The first of these locations if the parent folder exists:</td>
+		<td><file>home:.conf/$$appid<br/>
+				home:conf/$$appid<br/>
+				home:etc/conf/$$appid
+		</file></td>
+	  </tr>
+	  <tr>
+		<td>If all else fails:</td>
+		<td><file>home:.$$appid</file></td>
+	  </tr>
+	</table>
+
+	When the configuration file is loaded from <file>conf:</file> inside
+	your application, Grace will go through a number of locations:
+	
+	<ol>
+	  <li> A configuration inside the user's homedir </li>
+	  <li> A global configuration file in <file>/etc/conf</file> </li>
+	  <li> The <file>Contents/Resources</file> directory inside the
+	       application bundle. </li>
+	</ol>
+	
+	So there's a fallback mechanism that ends up with your default
+	<file>conf.xml</file> if nothing better was found. You can access
+	configuration values in a thread-safe fashion by using the
+	array index operator:
+  </p>
+  
+  %code confaccess.cpp
+	#include "myapp.h"
+	#include "storpelclient.h"
+	
+	int myApp::main (void)
+	{
+		string conferr;
+		if (! conf.load ("com.openpanel.apps.myapp", conferr))
+		{
+			ferr.writeln ("%% Error loading config: %s" %format (conferr));
+			return 1;
+		}
+		
+		storpelclient cl;
+		cl.sethost (conf["storpel"]["connecthost"]);
+		cl.storpelize ();
+		return 0;
+	}
+  %endcode
+  
+  <p>
+	The <class>configdb</class> has more powerful features that we will
+	investigate when we're building a daemon.
+  </p>
+  
+
+  <h2>Building Standalone Executables</h2>
+  <p>
+    You can also set up your project as a standalone executble using the
+    <<flag>>--noapp<</flag>> option to <sh>grace mkproject</sh>. If your
+    project is set like this, there is no grace.runoptions.xml file &mdash;
+    only app-bundles support resource files. You can still influence the
+    command line argument parsing by filling the <sym>application::opt</sym>
+    object in your application's constructor:
+  </p>
+  
+  %code opt_constructor.cpp
+	class storpelcountApp : public application
+	{
+	public:
+				 storpelcountApp (void) :
+					application ("com.openpanel.apps.storpelcount")
+				 {
+				 	opt = $("-h", $("long", "--help")) ->
+				 		  $("-i", $("long", "--input-file")) ->
+				 		  $("--help",
+				 		  		$("argc", 0)
+				 		   ) ->
+				 		  $("--input-file",
+				 		  		$("argc", 1) ->
+				 		  		$("default", "/var/db/storpels") ->
+				 		  		$("help", "Storpel file to process")
+				 		   );
+				 }
+				 ...
+	};
+  %endcode
+  
+  <p>
+    Standalone executables can have no resource files or default
+    configuration. The <sh>grace mkproject</sh> template will
+    assume configuration will be kept in a INI-style configuration
+    file in <file>/etc</file>.
+  </p>
+
+
+  <h2>Initialization</h2>
+  <p>
+    Grace applications don't use the C standard <sym>main()</sym> function
+    &mdash; this function is already provided by the libgrace shared object.
+    The <<class>>$appobject(appclass)<</class>> macro sets up a static
+    function that wraps your application class as a singleton pointer that is
+    accessed from <sym>main()</sym>.
+  </p>
+  <p>
+    Before the application object is created, main() will look for
+    a function <file>grace_init</file> in the application's symbol table
+    and, if found, call it. This function is useful if you want to
+    override any of the normal defaults defined in the
+    <file>&lt;grace/defaults.h&gt;</file> header. Let's say we have a
+    compelling reason to override the default file readbuffer size:
+  </p>
+  
+  %code grace_init.cpp
+	void grace_init (void)
+	{
+		defaults::sz::file::readbuf = 16384;
+	}
+  %endcode
+  
+  <p>&nbsp;</p>
+
+  <<chapter prev="wwg_string_manipulation.html" next="wwg_files.html">>
+<</page>>

@@ -1,0 +1,20 @@
+$$ ./ex3
+main: Starting webserver on *:1337
+$$ telnet 127.0.0.1 1337
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+GET / HTTP/1.0
+
+HTTP/1.1 200 OK
+Content-type: text/plain
+Content-length: 14
+
+Hello, world.
+Connection closed by foreign host.
+$$ killall -TERM ex3
+$$ cat event.log 
+Dec  2 09:37:33 main     [INFO ]: Starting webserver on *:1337
+Dec  2 09:37:35 main     [INFO ]: Shutting down webserver
+Dec  2 09:37:40 main     [INFO ]: Shutting down log thread
+$$ 

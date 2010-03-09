@@ -1,0 +1,237 @@
+
+@section main
+<<page title="Building Daemons" idx="10">>
+  <h1>Building Daemons</h1>
+  <p>
+  	The <class>daemon</class> class helps you write applications that
+  	should remain resident in the background. Typically daemons have
+  	no communication with a terminal.
+  </p>
+  
+  <<toc>>
+  
+  <h2>Using mkproject for Daemons</h2>
+  <p>
+  	The <sh>grace mkproject</sh> tool recognizes the <sh>--daemon</sh> flag
+  	to create a project directory suitable for daemon development. The
+  	skeleton cpp file looks like this:
+  </p>
+  
+  %code daemon_skeleton.cpp
+	#include "storpeld.h"
+	
+	$appobject (storpeldApp);
+	
+	// ==========================================================================
+	// CONSTRUCTOR storpeldApp
+	// ==========================================================================
+	storpeldApp::storpeldApp (void)
+		: daemon ("com.openpanel.svc.storpeld"),
+		  conf (this)
+	{
+	}
+	
+	// ==========================================================================
+	// DESTRUCTOR storpeldApp
+	// ==========================================================================
+	storpeldApp::~storpeldApp (void)
+	{
+	}
+	
+	// ==========================================================================
+	// METHOD storpeldApp::main
+	// ==========================================================================
+	int storpeldApp::main (void)
+	{
+		string conferr; ///< Error return from configuration class.
+		
+		// Add watcher value for event log. System will daemonize after
+		// configuration was validated.
+		conf.addwatcher ("system/eventlog", &storpeldApp::confLog);
+		
+		// Load will fail if watchers did not valiate.
+		if (! conf.load ("com.openpanel.svc.storpeld", conferr))
+		{
+			ferr.writeln ("%% Error loading configuration: %s" %format (conferr));
+			return 1;
+		}
+		
+		daemonize ();
+		log::write (log::info, "main", "storpeld started");
+		value ev;
+		
+		while (true)
+		{
+			ev = waitevent ();
+			if (ev.type() == "shutdown") break;
+		}
+	
+		log::write (log::info, "main", "Shutting down");
+		stoplog();
+		return 0;
+	}
+	
+	// ==========================================================================
+	// METHOD storpeldApp::confLog
+	// ==========================================================================
+	bool storpeldApp::confLog (config::action act, keypath &kp,
+								  const value &nval, const value &oval)
+	{
+		string tstr;
+		
+		switch (act)
+		{
+			case config::isvalid:
+				// Check if the path for the event log exists.
+				tstr = strutil::makepath (nval.sval());
+				if (! tstr.strlen()) return true;
+				if (! fs.exists (tstr))
+				{
+					ferr.writeln ("%% Log path %s does not exist" %format (tstr));
+					return false;
+				}
+				return true;
+				
+			case config::create:
+				// Set the event log target and daemonize.
+				fout.writeln ("%% Event log: %s\n" %format (nval));
+				addlogtarget (log::file, nval.sval(), log::all, 1024*1024);
+				return true;
+		}
+		
+		return false;
+	}
+  %endcode
+  
+  <p>
+  	The <sym>main</sym> method goes through a number of steps. First it
+  	sets up a configuration trigger (see below), then it loads the
+  	configuration and spawns to the background using <sym>daemonize</sym>.
+  	This call will also activate the log thread. Then the application
+  	waits for a "shutdown" event, which gets triggered by the process
+  	receiving a SIGTERM signal.
+  </p>
+  
+  <h2>Configuration Triggers</h2>
+  <p>
+    The <sym>addwatcher</sym> method to <class>configdb</class> connects
+    a method of your application class to a path within the configuration
+    file. Such a path is separated by slashes, where a path element
+    can also be '*' meaning "each value at this level", causing the
+    passed method to be called for each and every node in the configuration
+    that matches:
+  </p>
+  
+  %code watcher.cpp
+	int storpeldApp::main (void)
+	{
+		conf.addwatcher ("system/eventlog", &storpeldApp::confLog);
+		conf.addwatcher ("servers/*", &storpeldApp::confServer);
+		...
+	}
+	
+	bool storpeldApp::confServer (config::action act, keypath &kp,
+								  const value &nval, const value &oval)
+	{
+		switch (act)
+		{
+			case config::isvalid:
+				return true;
+				
+			case config::create:
+				createOutboundConnection (nval.id(), nval);
+				return true;
+		}
+		return false;
+	}
+  %endcode
+  
+  <p>
+    Let's add an example configuration:
+  </p>
+  
+  %xmlcode confxml
+    <com.openpanel.svc.storpeld>
+      <system>
+        <eventlog>/var/log/storpeld.event.log</eventlog>
+      </system>
+      <servers>
+        <server id="germany"><host>www.storpel.de</host></server>
+        <server id="italy"><host>www.storpel.it</host></server>
+      </servers>
+    </com.openpanel.svc.storpeld>
+  %endcode
+  
+  <p>
+    Rigged like this, there will be two calls to
+    <sym>createOutboundConnection</sym> on application startup.
+  </p>
+  
+  <h2>The Log Thread</h2>
+  <p>
+	The <class>daemon</class> carries a <class>thread</class> object
+	responsible for dispatching log messages. Through the
+	<sym>log::write</sym> call you can send it log information. Since
+	forking and threads are not good bedfellows, any log information
+	that is dispatched before the call to <sym>daemonize</sym> is
+	printed to the terminal and queued for later processing. The
+	<sym>addlogtarget</sym> method can be used to add extra rules
+	to the filter chain:
+  </p>
+  
+  %code logtarget.cpp
+	addlogtarget (log::file, "log:event.log", log::allinfo, 1024*1024);
+	addlogtarget (log::file, "log:debug.log", log::debug, 1024*1024);
+	addlogtarget (log::syslog, "storpeld", log::critical);
+  %endcode
+  
+  <h2>Delaying Daemonization</h2>
+  <p>
+ 	Normally, <class>daemonize</class> immediately forks your application
+ 	to the background, giving the user back control over the terminal.
+ 	It may be that you can't determine whether your application can
+ 	start up succesfully without starting threads. In that case,
+ 	call <sym>daemonize</sym> with an optional boolean set to true.
+ 	This will cause the parent process to await confirmation from the
+ 	child process that initialization succeeded before going back to
+ 	the console. A call to either <sym>delayedexitok</sym> or
+ 	<sym>delayedexiterror</sym> gives off this signal.
+  </p>
+  
+  <h2>The .pid File</h2>
+  <p>
+	The <class>daemon</class> class will try to write a pid-file named
+	after the application-id passed to its constructor to
+	<file>var:run/$${appid}.pid</file>. If such a file already exists
+	and it contains a running pid, your application will refuse to
+	launch.
+  </p>
+  
+  <h2>Specifying Child Process Credentials</h2>
+  <p>
+	If you expect your application to be launched as root, you can
+	specify the <class>daemon</class> to switch to a particular
+	user during <sym>daemonize</sym> proceedings:
+  </p>
+  
+  %code targetuser.cpp
+	int storpeldApp::main (void)
+	{
+		...
+		// Will look up user/group in /etc/passwd
+		settargetuser ("storpel");
+		
+		// Specific userid
+		settargetuser (501);
+		
+		// Specify group manually
+		settargetuser ("storpel","daemon");
+		
+		// Specify additional group list
+		settargetgroups ($("bin") -> $("nobody"));
+	}
+  %endcode
+  
+  <p>&nbsp;</p>
+  <<chapter prev="wwg_threads.html" next="wwg_xmlschemas.html">>
+<</page>>

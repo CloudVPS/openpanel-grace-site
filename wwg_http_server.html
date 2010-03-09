@@ -1,0 +1,245 @@
+@section main
+<<page title="The HTTP Server" idx="14">>
+  <h1>The HTTP Server</h1>
+  <p>
+	The <class>httpd</class> class is a flexible web server component
+	that allows you to set up parts of your application as a
+	web service. It has a flexible component lay-out that lets you
+	define those element of a web server that make sense for your
+	particular application domain without involving any unnecessary
+	baggage.
+  </p>
+  
+  <<toc>>
+  
+  <h2>Using the Class</h2>
+  <p>
+  	Using <class>httpd</class> in isolation, you will get a HTTP service
+  	that generates 404 errors on every URI you feed it. It sets up a
+  	listening number of worker threads in the background that respond
+  	to HTTP commands. Using the <sym>minthreads</sym> and
+  	<sym>maxthreads</sym> call you can control the thread allocation
+  	strategy.
+  </p>
+  
+  %code httpd_basic.cpp
+	#include <grace/httpd.h>
+	#include <grace/daemon.h>
+	#include "mydaemon.h"
+	
+	int mydaemon::main (void)
+	{
+		httpd server;
+
+		daemonize();
+		server.listento (8888);
+		server.minthreads (2);
+		server.maxthreads (16);
+		server.start ();
+		log::write (log::info, "main", "Web service started");
+		while (true)
+		{
+			value ev = waitevent ();
+			if (ev.type() == "shutdown") break;
+		}
+		log::write (log::info, "main", "Shutting down");
+		server.shutdown ();
+		stoplog ();
+		return 0;
+	}
+  %endcode
+  
+  <h2>Attaching Handlers</h2>
+  <p>
+	If all you're after is a HTTP service that sends 404 replies on
+	every request, you can stop reading now. To get more useful behavior
+	from the <class>httpd</class> class, you can add objects derived from
+	the <class>httpdobject</class> class to handle requests.
+  </p>
+  <p>
+    A <class>httpdobject</class> defines a URI path that it is
+    interested in. It gets called whenever a request comes in that
+    matches this path. It can either handle the request, leading to
+    a HTTP reply, or stick to only processing the environment, leaving
+    page output to a <class>httpdobject</class> further down
+    the chain.
+  </p>
+  <p>
+	Let's take a look at this idea in action and implement a 'page':
+  </p>
+  
+  %code httphelloworld.cpp
+	#include <grace/httpd.h>
+	#include <grace/daemon.h>
+	#include "mydaemon.h"
+	
+	class httphello : public httpdobject
+	{
+	public:
+		httphello (httpd &server)
+			: httpdobject ("/", server)
+		{
+		}
+		
+		~httphello (void) {}
+		
+		int run (string &uri, string &postbody, value &inhdr, string &out,
+				 value &outhdr, value &env, tcpsocket &s);
+	};
+	
+	int httphello::run (string &uri, string &postbody, value &inhdr,
+						string &out, value &outhdr, value &env,
+						tcpsocket &s)
+	{
+		out = "<html><body>Hello, world</body></html>";
+		outhdr["Content-type"] = "text/html";
+		return 200;
+	}
+	
+	int mydaemon::main (void)
+	{
+		httpd server;
+		httphello hello (server);
+
+		daemonize();
+		server.listento (8888);
+		server.minthreads (2);
+		server.maxthreads (16);
+		server.start ();
+		// ...
+  %endcode
+  
+  <p>
+	Here we used a <i>buffered</i> approach towards building the page.
+	The <sym>httphello::run</sym> method puts content in the output
+	buffer, adds a Content-type header and, in its return, indicates
+	that <class>httpd</class> should wrap it up in a HTTP 200 status
+	reply. 
+  </p>
+  <p>
+	There may be situations where buffering the entire page is
+	impractical &mdash; there may be just too much data or perhaps
+	you are generating a stream. In that case, you are responsible
+	for handling the entire HTTP reply cycle:
+  </p>
+  
+  %code httpunbuffered.cpp
+	int httphello::run (string &uri, string &postbody, value &inhdr,
+						string &out, value &outhdr, value &env,
+						tcpsocket &s)
+	{
+		s.puts ("HTTP/1.1 200 OK\r\n"
+				"Content-type: text/plain\r\n"
+				"Connection: close\r\n\r\n");
+		
+		s.writeln ("Hello, world");
+		s.close ();
+		return -200;
+	}
+  %endcode
+  
+  <p>
+	The -200 return is a bookkeeping affair here, if there is logging
+	attached to the <class>httpd</class> object, it can keep track
+	of the return status.
+  </p>
+  
+  <h2>Chaining</h2>
+  <p>
+	If you add multiple <class>httpdobject</class>-derived instances
+	matching the same URI, <class>httpd</class> will treat them as
+	a chain that will be followed until it gets something other than
+	a 0-return from a methodcall to <sym>run</sym>. You can use this
+	to your advantage if you want to break up some generic request
+	processing from the implementation of a more specific URI:
+  </p>
+  
+  %code httpchain.cpp
+	class httpacl : public httpdobject
+	{
+	public:
+		httpacl (httpd &ht) : httpdobject ("*", ht) {}
+		~httpacl (void) {}
+		
+		int run (string &uri, string &postbody, value &inhdr, string &out,
+				 value &outhdr, value &env, tcpsocket &s)
+		{
+			if (env["ip"] == "127.0.0.1") return 0;
+			outhdr["Content-type"] = "text/html";
+			out = "<html><body>NO!</body></html>";
+			return 401;
+		}
+	};
+	
+	int mydaemon::main (void)
+	{
+		httpd server;
+		httpacl acl (server);
+		httphello hello (server);
+		// ...
+  %endcode
+  
+  <p>
+	The new class looks at the "ip" environment-variable that is set by
+	<class>httpd</class>. Through chaining, you can add more variables
+	to the environment, but by default you will get the following:
+  </p>
+  
+  <table class="doc">
+    <tr>
+      <th>Variable</th>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td><tt>env["keepalive"]</tt></td>
+      <td><b>boolean</b></td>
+      <td>If set to true, the client protocol negotiated a preference
+          for keeping the connection alive. If this value is still
+          set to true after the chain is finished in buffered mode,
+          and the number of threads actively handling a connection is
+          less than half of the available pool, the connection will
+          be maintained.</td>
+    </tr>
+    <tr>
+      <td><tt>env["method"]</tt></td>
+      <td><b>string</b></td>
+      <td>The HTTP method sent (GET, POST, PUT, &c.)
+    </tr>
+    <tr>
+      <td><tt>env["ip"]</tt></td>
+      <td><b>string</b></td>
+      <td>The remote ip address</td>
+    </tr>
+    <tr>
+      <td><tt>env["referrer"]</tt></td>
+      <td><b>string</b></td>
+      <td>The contents of the Referer-header, if any.</td>
+    </tr>
+  </table>
+
+  <h2>Using httpdlogger</h2>
+  <p>
+	If you want to generate default Apache-style logfiles for your
+	application, you can use the <class>httpdlogger</class> class.
+	It's very easy to use:
+  </p>
+  
+  %code httpdlogger.cpp
+	int mydaemon::main (void)
+	{
+		httpd server;
+		httpdlogger log (server, "log:myapp.access.log",
+						 "log:myapp.error.log", 1024 * 25);
+		// ...
+  %endcode
+
+  <p>
+	If you omit the parameter defining the error log, none will
+	be created. The last argument is the maximum size a logfile
+	is allowed to be before it is rotated, you can omit it to
+	default to <sym>defaults::sz::logfile</sym>, which is 2 MB.
+  </p>
+
+  <<chapter prev="wwg_templates.html" next="">>
+<</page>>

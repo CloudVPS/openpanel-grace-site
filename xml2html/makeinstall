@@ -1,0 +1,20 @@
+#!/bin/sh
+. configure.paths
+
+install -m 755 xml2html $CONFIG_BINPATH/xml2html
+
+if [ `whoami` = "root" ]; then
+  etcpath=/etc
+else
+  if [ -d "${HOME}/.etc" ]; then
+    etcpath="${HOME}/.etc"
+  else
+    mkdir -p "${HOME}/etc"
+    etcpath="${HOME}/etc"
+  fi
+  mkdir -p "${HOME}/var/run"
+fi
+
+if [ ! -e "${etcpath}/xml2html.conf" ]; then
+  cp rsrc/xml2html.conf "$etcpath"/xml2html.conf
+fi

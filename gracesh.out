@@ -1,0 +1,22 @@
+$$ grace
+$>>> print netdb::gethostbyname ("cnn.com")
+{"name":["cnn.com"],"address":["64.236.16.20","64.236.16.52","64.236.24.12"]}
+$>>> string etcprotocols = fs.load ("etc:protocols")
+$>>> print etcprotocols.strlen()  
+5766
+$>>> value ln = strutil::splitlines (etcprotocols)
+$>>> print ln[8] 
+ip	0	IP		# internet protocol, pseudo protocol number
+$>>> value protocols                                       
+$>>> foreach (line, ln) {
+$  >   if (line.sval() && line.sval()[0] == '#') continue;
+$  >   value splt = strutil::splitspace (line)             
+$  >   if (splt.count()>2) {                   
+$  >     protocols[splt[0]] = $("val",splt[1].ival()) -> $("desc",splt[2])
+$  >   }                                                                   
+$  > }   
+$>>> print protocols["sctp"] 
+{"val":132,"desc":"SCTP"}
+$>>> print protocols["icmp"] 
+{"val":1,"desc":"ICMP"}
+$>>> 

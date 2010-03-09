@@ -1,0 +1,51 @@
+#!/bin/sh
+
+printheaders() {
+  titleset="no"
+  echo "    <dict id=\"${1}\">" >> toc.xml
+  echo "      <string id=\"filename\">${1}</string>" >> toc.xml
+  egrep "<h1>|<h2>" < $1 | while read hdr; do
+	hdrtxt=`echo "$hdr" | sed -e "s/.*<h.>//;s/<\/h.>.*//"`
+	hdranchr=`echo "$hdrtxt" | sed -e "s/ /_/g;s/[.'\",?/:-]//g"`
+	if [ "$titleset" = "no" ]; then
+	  echo "      <string id=\"title\">${hdrtxt}</string>" >> toc.xml
+	  echo "      <array id=\"headings\">" >> toc.xml
+	  titleset="yes"
+	else
+	  echo "        <dict>" >> toc.xml
+	  echo "          <string id=\"title\">${hdrtxt}</string>" >> toc.xml
+	  echo "          <string id=\"anchor\">${hdranchr}</string>" >> toc.xml
+	  echo "        </dict>" >> toc.xml
+	fi
+  done
+  echo "      </array>" >> toc.xml
+  echo "    </dict>" >> toc.xml
+}
+
+echo "* Building toc.xml for documentation section"
+cat > toc.xml << _EOF_
+<?xml version="1.0" encoding="UTF-8"?>
+<dict>
+  <dict id="wwgdocs">
+_EOF_
+
+for file in $(grep "<<page" wwg_*.html | sed -e "s/:.*idx=\"/:/;s/\".*//" | sort -k 2 -t : -n | sed -e "s/:.*$//"); do
+  printheaders $file
+done
+
+echo "* Adding other documents to toc.xml"
+cat >> toc.xml << _EOF_
+  </dict>
+  <dict id="otherpages">
+_EOF_
+
+list=$(ls -1 *.html | grep -v ^wwg_)
+for file in $list; do
+  printheaders $file
+done
+    
+echo "  </dict>" >> toc.xml
+echo "</dict>" >> toc.xml
+
+echo "* Adding Changes.txt"
+./parsechanges/parsechanges

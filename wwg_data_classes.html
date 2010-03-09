@@ -1,0 +1,212 @@
+
+@section main
+<<page title="Working with Grace: Data Classes" idx="2">>
+  <h1>The Data Classes</h1>
+  <p>
+	Within Grace, a number of basic classes are used intensively as argument
+	and return objects for other parts of the library. This makes sense,
+	it's what we call eating your own dogfood: a good way to make sure
+	that your product is tasty and nutricious. First we will go over these
+	classes quickly, then we'll illustrate their typical usage through some
+	example code.
+  </p>
+  
+  <<toc>>
+
+  <h2>The string Class</h2>
+  <p>
+	The most lamented design decision in the C language is the lack of a
+	native string type. There are support groups for people suffering from
+	this oversight. In place of a string type proper, in C there is only the
+	concept of an array of character bytes. The Grace <class>string</class>
+	class is a good alternative for storing static and dynamic string data.
+	Some of its strong points:
+  </p>
+  <ul>
+    <li>
+	  When string data is assigned from another <class>string</class>
+	  object, the library uses a copy-on-write mechanism to keep memory usage
+	  within bounds: Both strings use the same part of memory until one of
+	  them is changed and reserves a private copy.
+	</li>
+	<li>
+	  Many built-in operations can be performed on the object to help
+	  you with common tasks when processing all kinds of text data.
+	</li>
+	<li>
+	  The string data is kept inside a dynamic buffer that allocates new
+	  memory on the go, so there is no such thing as a buffer overflow.
+	</li>
+	<li>
+	  A string can contain full 8 bit data including NUL characters, so
+	  it can double up as a general storage buffer for binary data like
+	  bitmaps.
+	</li>
+  </ul>
+  <p>
+	Objects of the <class>string</class> class can be used seamlessly when
+	calling C functions that expect a regular C string. The other way around
+	things are fine, too. If you define functions or methods to accept a
+	string object as an argument, it will accept a C-string just fine.
+  </p>
+  
+
+  <h2>The statstring Class</h2>
+  <p>
+	Like the regular <class>string</class> class, <class>statstring</class>
+	is a container for string data, but it is optimized for keeping strings
+	that are more static in nature and could be used as an index value for
+	object collections. Alongside the regular string buffer, a calculated hash
+	value is kept inside its objects for this purpose. Within a single thread
+	context, all <class>statstring</class> objects that have the same data
+	point to the same memory region, making it a useful companion for large
+	arrays of indexed sets.
+  </p>
+  
+
+  <h2>The value Class</h2>
+  <p>
+	A powerful container class for keeping variable data. A
+	<class>value</class> object can contain any of the following:
+  </p>
+  <ul>
+    <li>Signed or unsigned integer values (8, 16, 32 or 64 bits)</li>
+	<li>Strings</li>
+	<li>Boolean values</li>
+	<li>IP address values</li>
+	<li>Fixed point decimal numbers (for <class>currency</class> data).</li>
+	<li>Double precision floating point values</li>
+	<li>Attributes indexed by a <class>statstring</class> key </li>
+	<li>Child value objects (numbered or indexed by
+		<class>statstring</class> key)</li>
+  </ul>
+  <p>
+	The class has all the ingredients for exchanging data without casting
+	the data specification in iron. There are a many ways to serialize and
+	deserialize <class>value</class> objects, with representation formats
+	including:
+  </p>
+  
+  <table class="doc">
+    <tr>
+      <th>Format</th>
+      <th>Read</th>
+      <th>Write</th>
+      <th>Attributes</th>
+      <th>IPv4</th>
+      <th>Currency</th>
+    </tr>
+    <tr>
+      <td>GraceXML</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+    </tr>
+    <tr>
+      <td>Generic XML with Schemas</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+    </tr>
+    <tr>
+      <td>Apple plist</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>Compressed XML</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>*</td>
+      <td>*</td>
+      <td>*</td>
+    </tr>
+    <tr>
+      <td>SHoX Binary</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+    </tr>
+    <tr>
+      <td>CSV</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>INI</td>
+      <td>&#10003;</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>PHP Serialized</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>*</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>JSON</td>
+      <td>&#10003;</td>
+      <td>&#10003;</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+  </table>
+
+  <p>
+	In other words, it's extremely easy to connect and talk to the
+	outside world and create easy bindings from your applications for
+	data coming from and going to programs written in other languages.
+  </p>
+  
+
+  <h2>The currency Class</h2>
+  <p>
+	Class <class>currency</class> is a simple class for fixed point
+	arithmetic, to be used when doing financial calculations that mandate
+	non-use of floating point numbers. It can be formatted for output,
+	externally it is always represented as a cents amount with 2 decimals,
+	internally it currently uses 3 decimals. Beancounters with fixations on
+	regulatory banalities tend to frown upon scary floating point calculations
+	for financial statements; In such a war on your sanity this will be a
+	useful weapon.
+  </p>
+  
+
+  <h2>The ipaddress Class</h2>
+  <p>
+  	For an easy representation of a 32 bits IPv4 address, Grace offers the
+  	<class>ipaddress</class> class. It is compatible with the
+  	<class>value</class> class for storage and retrieval and serialization.
+  	Classes like <class>tcpsocket</class> and <class>tcplistener</class>
+  	accept <class>ipaddress</class> objects for binding and connecting.
+  </p>
+  
+
+  <h2>The timestamp Class</h2>
+  <p>
+  	For time keeping and calendar calculations, the <class>timestamp</class>
+  	class offers convenient storage, including conversion from
+  	popular text-based data/time formats. The class is timezone-aware and
+  	can deal with time in a resolution of either seconds or microseconds.
+  </p>
+
+  <<chapter prev="wwg_intro.html" next="wwg_data_classes_in_action.html">>
+<</page>>

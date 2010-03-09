@@ -1,0 +1,225 @@
+<div class="code"><pre>
+<span class="pre">#include "grace2html.h"</span>
+<span class="pre">#include &lt;grace/filesystem.h&gt;</span>
+<span class="pre">#include &lt;grace/strutil.h&gt;</span>
+
+<span class="keyword">APPOBJECT</span>(grace2htmlApp);
+
+<span class="comment">//  =========================================================================</span>
+<span class="comment">/// Main method.</span>
+<span class="comment">//  =========================================================================</span>
+<span class="keyword">int</span> grace2htmlApp::main (<span class="keyword">void</span>)
+{
+    <span class="keyword">string</span> code;
+    code = fs.load (argv[<span class="string">"*"</span>][0]);
+    <span class="keyword">bool</span> indouble = <span class="keyword">false</span>;
+    <span class="keyword">bool</span> insingle = <span class="keyword">false</span>;
+    <span class="keyword">bool</span> inccomment = <span class="keyword">false</span>;
+    <span class="keyword">bool</span> incppcomment = <span class="keyword">false</span>;
+    
+    <span class="keyword">value</span> kwdb =
+        $(<span class="string">"bool"</span>, 1) -&gt;
+        $(<span class="string">"true"</span>, 1) -&gt;
+        $(<span class="string">"false"</span>, 1) -&gt;
+        $(<span class="string">"if"</span>, 1) -&gt;
+        $(<span class="string">"else"</span>, 1) -&gt;
+        $(<span class="string">"return"</span>, 1) -&gt;
+        $(<span class="string">"while"</span>, 1) -&gt;
+        $(<span class="string">"do"</span>, 1) -&gt;
+        $(<span class="string">"for"</span>, 1) -&gt;
+        $(<span class="string">"select"</span>, 1) -&gt;
+        $(<span class="string">"case"</span>, 1) -&gt;
+        $(<span class="string">"default"</span>, 1) -&gt;
+        $(<span class="string">"char"</span>, 1) -&gt;
+        $(<span class="string">"short"</span>, 1) -&gt;
+        $(<span class="string">"int"</span>, 1) -&gt;
+        $(<span class="string">"void"</span>, 1) -&gt;
+        $(<span class="string">"double"</span>, 1) -&gt;
+        $(<span class="string">"float"</span>, 1) -&gt;
+        $(<span class="string">"unsigned"</span>, 1) -&gt;
+        $(<span class="string">"long"</span>, 1) -&gt;
+        $(<span class="string">"const"</span>, 1) -&gt;
+        $(<span class="string">"class"</span>, 1) -&gt;
+        $(<span class="string">"public"</span>, 1) -&gt;
+        $(<span class="string">"private"</span>, 1) -&gt;
+        $(<span class="string">"protected"</span>, 1) -&gt;
+        $(<span class="string">"new"</span>, 1) -&gt;
+        $(<span class="string">"extern"</span>, 1) -&gt;
+        $(<span class="string">"value"</span>, 1) -&gt;
+        $(<span class="string">"statstring"</span>, 1) -&gt;
+        $(<span class="string">"string"</span>, 1) -&gt;
+        $(<span class="string">"returnclass"</span>, 1) -&gt;
+        $(<span class="string">"retain"</span>) -&gt;
+        $(<span class="string">"foreach"</span>, 1) -&gt;
+        $(<span class="string">"sharedsection"</span>, 1) -&gt;
+        $(<span class="string">"exclusivesection"</span>, 1) -&gt;
+        $(<span class="string">"caseselector"</span>, 1) -&gt;
+        $(<span class="string">"incaseof"</span>, 1) -&gt;
+        $(<span class="string">"defaultcase"</span>, 1) -&gt;
+        $(<span class="string">"appobject"</span>, 1) -&gt;
+        $(<span class="string">"%format"</span>, 1);
+    
+    <span class="keyword">value</span> lines = strutil::split (code, <span class="string">'\n'</span>);
+    
+    fout.writeln (<span class="string">"&lt;div class=\"code\"&gt;&lt;pre&gt;"</span>);
+    
+    <span class="keyword">foreach</span> (line, lines)
+    {
+        <span class="keyword">string</span> l = line;
+        <span class="keyword">string</span> out;
+        
+        <span class="keyword">for</span> (<span class="keyword">int</span> i=0; i&lt;l.strlen(); ++i)
+        {
+            <span class="keyword">if</span> (l[i] == <span class="string">'\t'</span>)
+            {
+                <span class="keyword">do</span>
+                {
+                    out.strcat (<span class="string">' '</span>);
+                } <span class="keyword">while</span> (out.strlen() &amp; 3);
+            }
+            <span class="keyword">else</span> <span class="keyword">if</span> (l[i] == <span class="string">'&lt;'</span>)
+            {
+                out.strcat (<span class="string">"&amp;lt;"</span>);
+            }
+            <span class="keyword">else</span> <span class="keyword">if</span> (l[i] == <span class="string">'&gt;'</span>)
+            {
+                out.strcat (<span class="string">"&amp;gt;"</span>);
+            }
+            <span class="keyword">else</span> <span class="keyword">if</span> (l[i] == <span class="string">'&amp;'</span>)
+            {
+                out.strcat (<span class="string">"&amp;amp;"</span>);
+            }
+            <span class="keyword">else</span>
+            {
+                out.strcat (l[i]);
+            }
+        }
+        
+        l = out;
+        out.crop ();
+        
+        <span class="keyword">for</span> (<span class="keyword">int</span> i=0; i&lt;l.strlen(); ++i)
+        {
+            <span class="keyword">if</span> (l[i] == <span class="string">'\\'</span>)
+            {
+                out.strcat (l[i++]);
+                out.strcat (l[i]);
+            }
+            <span class="keyword">else</span>
+            {
+                <span class="keyword">if</span> ((l[i] == <span class="string">'\"'</span>) &amp;&amp; (! insingle) &amp;&amp; (! inccomment) &amp;&amp;
+                    (! incppcomment))
+                {
+                    indouble = !indouble;
+                    <span class="keyword">if</span> (indouble)
+                    {
+                        out.strcat (<span class="string">"&lt;span class=\"string\"&gt;\""</span>);
+                    }
+                    <span class="keyword">else</span>
+                    {
+                        out.strcat (<span class="string">"\"&lt;/span&gt;"</span>);
+                    }
+                }
+                <span class="keyword">else</span> <span class="keyword">if</span> ((l[i] == <span class="string">'\''</span>) &amp;&amp; (! indouble) &amp;&amp; (! inccomment) &amp;&amp;
+                         (! incppcomment))
+                {
+                    insingle = !insingle;
+                    <span class="keyword">if</span> (insingle)
+                    {
+                        out.strcat (<span class="string">"&lt;span class=\"string\"&gt;'"</span>);
+                    }
+                    <span class="keyword">else</span>
+                    {
+                        out.strcat (<span class="string">"'&lt;/span&gt;"</span>);
+                    }
+                }
+                <span class="keyword">else</span> <span class="keyword">if</span> ((l[i] == <span class="string">'#'</span>) &amp;&amp; (! incppcomment) &amp;&amp;
+                         (! insingle) &amp;&amp; (! indouble))
+                {
+                    out.strcat (<span class="string">"&lt;span class=\"pre\"&gt;#"</span>);
+                    incppcomment = <span class="keyword">true</span>;
+                }
+                <span class="keyword">else</span> <span class="keyword">if</span> ((l[i] == <span class="string">'/'</span>) &amp;&amp; (! incppcomment) &amp;&amp;
+                         (! inccomment) &amp;&amp; (! insingle) &amp;&amp; (! indouble))
+                {
+                    <span class="keyword">if</span> (l[i+1] == <span class="string">'/'</span>)
+                    {
+                        incppcomment = <span class="keyword">true</span>;
+                        out.strcat (<span class="string">"&lt;span class=\"comment\"&gt;//"</span>);
+                        ++i;
+                    }
+                    <span class="keyword">else</span> <span class="keyword">if</span> (l[i+1] == <span class="string">'*'</span>)
+                    {
+                        inccomment = <span class="keyword">true</span>;
+                        out.strcat (<span class="string">"&lt;span class=\"comment\"&gt;/*"</span>);
+                        ++i;
+                    }
+                    <span class="keyword">else</span>
+                    {
+                        out.strcat (l[i]);
+                    }
+                }
+                <span class="keyword">else</span> <span class="keyword">if</span> (inccomment &amp;&amp; (l[i] == <span class="string">'*'</span>) &amp;&amp;
+                         (l[i+1] == <span class="string">'/'</span>))
+                {
+                    out.strcat (<span class="string">"*/&lt;/span&gt;"</span>);
+                    inccomment = <span class="keyword">false</span>;
+                }
+                <span class="keyword">else</span> <span class="keyword">if</span> ((! insingle) &amp;&amp; (! indouble)  &amp;&amp; (! inccomment) &amp;&amp;
+                         (! incppcomment))
+                {
+                    <span class="keyword">char</span> oc = i ? l[i-1] : 0;
+                    <span class="keyword">if</span> ((! isalpha (oc)) &amp;&amp; (! isdigit (oc)) &amp;&amp;
+                        (oc != <span class="string">'_'</span>) &amp;&amp; (oc != <span class="string">'$'</span>))
+                    {
+                        <span class="keyword">int</span> j;
+                        <span class="keyword">string</span> kwmatch = l.mid (i, 15);
+                        <span class="keyword">for</span> (j=0; j&lt;kwmatch.strlen(); ++j)
+                        {
+                            <span class="keyword">char</span> c = kwmatch[j];
+                            <span class="keyword">if</span> ((! isalpha (c)) &amp;&amp;
+                                (! isdigit (c)) &amp;&amp;
+                                (c != <span class="string">'$'</span>) &amp;&amp; (c != <span class="string">'_'</span>) &amp;&amp;
+                                (c != <span class="string">'%'</span>)) break;
+                        }
+                        <span class="keyword">if</span> (j&lt;15) kwmatch.crop (j);
+                        
+                        <span class="keyword">if</span> (kwdb.exists (kwmatch))
+                        {
+                            out.strcat (<span class="string">"&lt;span class=\"keyword\"&gt;"</span>
+                                        <span class="string">"%s&lt;/span&gt;"</span> <span class="keyword">%format</span> (kwmatch));
+                            i += kwmatch.strlen() -1;
+                        }
+                        <span class="keyword">else</span>
+                        {
+                            out.strcat (l[i]);
+                        }
+                    }
+                    <span class="keyword">else</span>
+                    {
+                        out.strcat (l[i]);
+                    }
+                }
+                <span class="keyword">else</span>
+                {
+                    out.strcat (l[i]);
+                }
+            }
+        }
+        
+        <span class="keyword">if</span> (incppcomment)
+        {
+            out.strcat (<span class="string">"&lt;/span&gt;"</span>);
+            incppcomment = <span class="keyword">false</span>;
+        }
+        
+        fout.writeln (out);
+    }
+    
+    fout.writeln (<span class="string">"&lt;/pre&gt;&lt;/div&gt;"</span>);
+    
+    <span class="keyword">return</span> 0;
+}
+
+
+</pre></div>

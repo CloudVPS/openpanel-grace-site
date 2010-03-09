@@ -1,0 +1,183 @@
+
+@section main
+<<page title="Networking" idx="8">>
+  <h1>Networking</h1>
+  <p>
+	Modern applications spend their days on the internet. And no application
+	has sufficiently evolved until it can send mail. Grace is here to
+	help you with that.
+  </p>
+  
+  <<toc>>
+
+  <h2>Using tcpsocket</h2>
+  <p>
+	With <class>tcpsocket</class> you can create a <class>file</class>
+	object that is connected to a remote server. Its major distinction
+	from a regular <class>file</class> object is the
+	<sym>connect</sym> method, which gets the tcp connection
+	magic going:
+  </p>
+  
+  %code tcpsocket_connect.cpp
+	tcpsocket s;
+	if (! s.connect ("bofh.example.net", 666)) return false;
+	
+	string excuse = s.gets ();
+	s.close ();
+	fout.writeln (excuse);
+	return true;
+  %endcode
+  
+  <p>
+	Where a disk file is either set for reading or for writing, a
+	<class>tcpsocket</class> can go both ways. You can also
+	connect to unix domain sockets using <sym>uconnect</sym>:
+  </p>
+  
+  %code tcpsocket_uconnect.cpp
+	tcpsocket s;
+	if (! s.uconnect ("/dev/excuse")) return false;
+	// etc. etc.
+  %endcode
+
+  <h2>Listening Sockets</h2>
+  <p>
+	A <class>tcplistener</class> is an object that listens for
+	incoming connections on a tcp port or unix device socket. You
+	can bind <class>tcpsocket</class> objects to connections
+	it accepts. 
+  </p>
+  
+  %code tcplistener.cpp
+	void excuseServer (void)
+	{
+		tcplistener lsock;
+		tcpsocket sock;
+		
+		value excuses = $("Solar radiation") ->
+						$("Collision detection") ->
+						$("EMP");
+	
+		lsock.listento (666);
+		while (true)
+		{
+			sock = lsock.accept ();
+			int exc = rand() % excuses.count();
+			sock.writeln (excuses[exc]);
+			sock.close ();
+		}
+	}
+  %endcode
+
+  <h2>Interacting with HTTP Servers</h2>
+  <p>
+	HTTP is the new TCP in many environments. The <class>httpsocket</class>
+	class is your gateway to web data:
+  </p>
+  
+  %code httpsocket.cpp
+	#include "myapp.h"
+	#include <grace/http.h>
+	
+	int myApp::main (void)
+	{
+		httpsocket hs;
+		string slash = hs.get ("http://slashdot.org");
+		fout.writeln ("%i bytes, st %i" %format (slash.strlen(), hs.status));
+		return 0;
+	}
+  %endcode
+
+  <p>
+	Objects of this class normally try to use the HTTP 1.1 keepalive mechanism
+	to keep the connection open for more requests &mdash; when a new request
+	for the same domain is received, <class>httpsocket</class> will reuse it,
+	as long as the object is still around. You can influence this through
+	the <sym>keepalive</sym> method.
+  </p>
+  
+  <p>
+	The <sym>authentication</sym> call can set up HTTP basic authentication:
+  </p>
+  
+  %code httpsocketauth.cpp
+	httpsocket hs;
+	hs.authentication ("backend","s3ckr1t");
+	string secret = hs.get ("http://db.local:8112/getSecret");
+  %endcode
+
+  <p>
+	You can also interact with the incoming and outgoing HTTP headers.
+	For incoming headers, pass a reference to a <class>value</class>
+	object as a second argument. For outgoing headers, use the
+	<sym>setheader</sym> method:
+  </p>
+  
+  %code httpsockethdr.cpp
+	httpsocket hs;
+	value rethdr;
+	
+	hs.setheader ("User-Agent", "EarthWorm");
+	string dat = hs.get ("http://db.local:1225/cachelist", rethdr);
+	fout.writeln ("Data: %s" %format (rethdr["Content-type"]));
+  %endcode
+
+  <h2>Posting Form Data</h2>
+  <p>
+	If you need to post data, there are several ways. The most direct
+	way is to assume normal form encoding:
+  </p>
+  
+  %code httppostform.cpp
+	httpsocket hs;
+	string res;
+	
+	res = hs.post ("http://db.local/submit", $("q","beans"));
+  %endcode
+  
+  <p>
+	You can also post arbitrary data with a content-type:
+  </p>
+  
+  %code httpopostcontent.cpp
+	value *calljson (const value &args)
+	{
+		returnclass (value) res retain;
+		httpsocket hs;
+		string in;
+		string out = args.tojson ();
+		
+		in = hs.post ("http://db.local/call", "application/json", out);
+		res.fromjson (in);
+		return &res;
+	}
+  %endcode
+ 
+  <h2>Sending SMTP Mail</h2>
+  <p>
+    Sending email is quite simple with the <class>smtpsocket</class>
+    class:
+  </p>
+  
+  %code smtpsocket.cpp
+	#include <grace/smtp.h>
+	
+	void sendAlert (const string &alert)
+	{
+		smtpsocket smtp;
+		
+		// Defaults to localhost:25
+		smtp.setsmtphost ("mx-internal.local", 25);
+		smtp.setsender ("alerts@storpel.local", "Alert Service");
+		
+		// First argument is a value object that contains an
+		// array of all recipients, in this case we will use
+		// only one.
+		smtp.sendmessage ($("alerts@example.net"), "Alert", alert);
+	}
+  %endcode
+
+  <p>&nbsp;</p>
+  <<chapter prev="wwg_files.html" next="wwg_threads.html">>
+<</page>>

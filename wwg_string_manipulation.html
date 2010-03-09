@@ -1,0 +1,439 @@
+
+@section main
+<<page title="Working with Grace: String Manipulation" idx="5">>
+  <h1>String Manipulation</h1>
+  <p>
+	Text processing is an important part of software. Many applications suck
+	in massive amounts of text data and hack it up, process and twist the
+	bits, puff some magic smoke and then spit out yet more text data.  The
+	<class>string</class> class and its associated manipulations make Grace
+	an excellent choice for this kind of processing.
+  </p>
+  
+  <<toc>>
+
+  <h2>Array Access</h2>
+  <p>
+	The <class>string</class> class has regular array index operators that
+	return a reference to the character inside the string, so code like this
+	is perfectly valid:
+  </p>
+  
+  %code wwg_stringmanip_1
+	bool parse (const string &text) 
+	{ 
+		if (text[0] == '!') // expect command character 
+		{ 
+			string arg = text.mid (1); // Copy from second char onward. 
+			docommand (arg); 
+			return true; 
+		} 
+		
+		return false; 
+	}
+  %endcode
+  
+  <p>
+	You should be careful with manipulating data like this, though.
+	String objects are guarded by a copy-on-write mechanism, which
+	allows you to share string data between multiple objects, where an
+	object that wants to change its data severs its ties from this
+	shared object and creates a private copy. References to the array do
+	not trigger this mechanism and assigning new values to them does
+	not either. Use the <sym>docopyonwrite()</sym> method on such a string
+	beforehand if you really insist on such tomfoolery:
+  </p>
+  
+  %code wwg_stringmanip_2
+	void myfunction (const string &param) 
+	{ 
+		string arg = param; 
+		if (arg[0] == '@') // replace at-sign with exclamation mark 
+		{ 
+			// if we don't do this, the next command will alter param. 
+			arg.docopyonwrite (); 
+			
+			arg[0] = '!'; // change first character to excl. mark. 
+			
+			// oh, and don't do this, a nul-character does not terminate a 
+			// string proper: 
+			arg[1] = '\0'; 
+			
+			// this will work, though: 
+			arg.crop (1); 
+		} 
+	}
+  %endcode
+  
+  <p>
+	It's much better if you manage to express your operations using the
+	existing manipulation methods, so let's get to those quickly.
+  </p>
+
+
+  <h2>String Matching</h2>
+  <p>
+	The simplest way of comparing a string to another string, a value or
+	a c-string is to use the plain old '==' operator. This will perform
+	a byte-for-byte comparison. For more complex operations, there are a
+	number of variants of ye olde libc 'strcmp' family:
+  </p>
+  
+  %code wwg_stringmanip_3
+	if (mystring == "foo") { /* old school c literal */ } 
+	if (mystring == myvalue) { /* compare to value */ } 
+	if (mystring.strcmp ("bar") == 0) { /* libc-style compare */ } 
+	if (mystring.strcasecmp ("bar") == 0) { /* libc, ignore case */ } 
+	if (mystring.strncmp ("ba", 2) == 0) { /* libc with length */ } 
+	if (mystring.strncasecmp ("ba", 2) == 0) { /* libc, length+case */ } 
+	if (mystring.globcmp ("ba*")) { /* unix wildcard/glob compare */ } 
+  %endcode
+  
+  <p>
+	For a comparison you can also use the less-than and greater-than
+	operators, these are case sensitive.
+  </p>
+
+
+  <h2>Finding a Sequence Inside a String</h2>
+  <p>
+	For locating specific character sequences, the string class exports
+	libc-style <sym>strchr</sym> and <sym>strstr</sym> methods:
+  </p>
+  
+  %code wwg_stringmanip_4
+	if (mystring.strstr ("therfuc") >= 0) 
+		ferr.writeln ("Bad word detected!"); 
+	if (mystring.strchr ('&') >= 0) 
+		ferr.writeln ("Bad character detected!");
+  %endcode
+  
+  <p>
+	Keep in mind that libc returns char pointers, which is impractical
+	in Grace, so instead you get an integer with an offset. A negative
+	offset means nothing was found. If you want to search beyond the
+	location where you first found something, you can provide an
+	explicit base offset:
+  </p>
+  
+  %code wwg_stringmanip_5
+	int lastSpacePos;; 
+	int spacePos = -1; 
+	do 
+	{ 
+		lastSpacePos = spacePos; 
+		spacePos = mystring.strchr (' ', spacePos+1); 
+	} while (spacePos >= 0);
+	
+	string lastword; 
+	if (lastSpacePos>=0) lastword = mystring.mid (lastSpacePos+1);
+  %endcode
+  
+  <p>
+	What the code above is trying to do, by the way, is a perfect job
+	for the <sym>cutafterlast</sym> method which we'll get to later.
+  </p>
+  
+
+  <h2>Copying Sub-strings</h2>
+  <p>
+	You can use the position you find through these searching methods to
+	make copies of a sub-set of the string data, for example:
+  </p>
+  
+  %code wwg_stringmanip_6
+	// This function will split a string in three parts: 
+	//   1. Everything until the first '<'. 
+	//   2. Everything between the first '<' and the first '>'. 
+	//   3. Everything after the first '>'. 
+	value *copyFirstTag (const string &text) 
+	{ 
+		returnclass (value) res retain; 
+		
+		int ltpos, rtpos; 
+		ltpos = text.strchr ('<'); 
+		gtpos = text.strchr ('>'); 
+		
+		if ( (ltpos<0) || (gtpos<0) ) return &res; 
+		
+		string left, mid, right; 
+		left = text.left (ltpos); 
+		mid = text.mid (ltpos+1, (gtpos-ltpos) -1); 
+		right = text.mid (rtpos+1); 
+		
+		res[0] = left; 
+		res[1] = mid; 
+		res[2] = right; 
+		
+		return &res; 
+	}
+  %endcode
+
+
+  <h2>Copying Using Markers</h2>
+  <p>
+	The <class>string</class> class has a number methods that create copies
+	of the left or right side of a string up to or after the first or last
+	instance of a specified marker character/sequence:
+  </p>
+  
+  %code wwg_stringmanip_7
+	string mystring = "one to three four"; 
+	string foo; 
+	
+	// foo will contain "one" 
+	foo = mystring.copyuntil (' '); 
+	
+	// foo will contain "to three four" 
+	foo = mystring.copyafter (' '); 
+	
+	// foo will contain "one to three" 
+	foo = mystring.copyuntillast (' '); 
+	
+	// foo will contain "four" 
+	foo = mystring.copyafterlast (' '); 
+	
+	mystring = "hello<br/>world"; 
+	
+	// foo will contain "hello" 
+	foo = mystring.copyuntil ("<br/>"); 
+  %endcode
+  
+
+  <h2>Cutting up Using Markers</h2>
+  <p>
+	The nondestructive copying methods of the last section have
+	destructive counterparts that can be used to cut up one string into
+	two using the same semantics:
+  </p>
+  
+  %code wwg_stringmanip_8
+	string mystring = "this is a test"; 
+	string word; 
+	
+	// word will be "this", mystring will be "is a test". 
+	word = mystring.cutat (' '); 
+	
+	// word will be "test", mystring will be "is a" 
+	word = mystring.cutafterlast (' '); 
+  %endcode
+  
+
+  <h2>Changing the Case</h2>
+  <p>
+	There are situations where you want to normalize the case of a string. The
+	<class>string</class> class has methods for case normalization in two
+	variations: One set creates a normalized copy, the second set replaces the
+	string data inline:
+  </p>
+  
+  %code wwg_stringmanip_9
+	string mystring = "HellO woRld."; 
+	string res; 
+	
+	// res will be "hello world." 
+	res = mystring.lower(); 
+
+	// res will be "Hello world." 
+	res.capitalize(); 
+
+	// res will be "HELLO WORLD." 
+	res.ctoupper();
+  %endcode
+  
+
+  <h2>Removing Unwanted Characters</h2>
+  <p>
+	There are several situations where you want to remove some unwanted
+	characters from a string. Grace offers many methods for purging such
+	subversive elements. Let's go over the whole set:
+  </p>
+  
+  %code wwg_stringmanip_10
+	string trimme = "  ?hello!  "; 
+	string res; 
+	
+	// Trim chars from the ends: res will be "?hello!". 
+	res = trimme.trim (" "); 
+	
+	// Remove chars from a set: res will be "hello". 
+	res = res.stripchar ("?!"); 
+	
+	// set up the translation dictionary 
+	value trans; 
+	trans["h"] = "o"; 
+	trans["o"] = "h"; 
+	
+	// translate: res will be "oellh". 
+	res.replace (trans); 
+	
+	// translate again: res will be "hello". 
+	res.replace (trans); 
+	
+	// restrict to a set: res will be "hll"; 
+	res = res.filter ("bcdfghjklmnpqtstvwxyz"); 
+  %endcode
+  
+
+  <h2>Cropping and Padding</h2>
+  <p>
+	In situations where you want to limit or control the size of a
+	string, you can use the pad and crop methods to your advantage:
+  </p>
+  
+  %code wwg_stringmanip_11
+	string orig = "Hello world."; 
+	string str; 
+	str = orig; 
+	str.pad (15, ' '); // "Hello world.    " 
+	str = orig; 
+	str.pad (-15, ' '); // "   Hello world." 
+	str = orig; 
+	str.crop (5); // "Hello" 
+	str = orig; 
+	str.crop (-6); // "world." 
+  %endcode
+  
+
+  <h2>Formatting and Encoding</h2>
+  <p>
+    For information about formatting strings with parameters, see
+    <a href="wwg_data_classes_in_action.html#String_Formatting">here</a>.
+	In some cases you just want to do some explicit encoding/decoding,
+	there are functions for that as well:
+  </p>
+
+  %code wwg_stringmanip_13  
+	string base64 = mystring.encode64(); 
+	string back = base64.decode64(); 
+	// inline backslash-escape 
+	mystring.escape(); 
+	mystring.unescape(); 
+	// inline xml-escape 
+	mystring.escapexml(); 
+	mystring.unescapexml(); 
+  %endcode
+  
+  <p>
+	There's one more codec hiding inside the strutil class: 
+  </p>
+  
+  %code wwg_stringmanip_14
+	#include <grace/strutil.h> 
+	
+	void foo (void) 
+	{ 
+	   string in = "Testing & Trying"; 
+	   // out will be "Testing+%26+Trying" 
+	   string out = strutil::urlencode (in); 
+	   // back will be "Testing & Trying" again 
+	   string back = strutil::urldecode (out); 
+	} 
+  %endcode
+  
+  <p>
+	This performs the common URL-encoding as is extensively used in
+	web-environments.
+  </p>
+  
+
+  <h2>Splitting Strings</h2>
+  <p>
+	There are more useful functions inside the strutil class to split a string into a value array 
+	where you can do further processing. 
+  </p>
+  
+  %code wwg_stringmanip_15
+	string words = "read my lips"; 
+	value wordlist = strutil::splitspace (words); 
+	
+	words = "one|two|three"; 
+	wordlist = strutil::split (words, '|'); 
+	
+	words = "one two \"two plus one\" four"; 
+	wordlist = strutil::splitquoted (words, ' '); 
+	
+	words = "one\ntwo\nthree"; 
+	wordlist = strutil::splitlines (words); 
+	
+	words = "1,\"john\",133"; 
+	wordlist = strutil::splitcsv (words);
+  %endcode
+  
+
+  <h2>Regular Expressions</h2>
+  <p>
+	Executing a regular expression on a string is also simple: 
+  </p>
+  
+  %code wwg_stringmanip_16
+	string in = "java language considered beneficial"; 
+	string out = strutil::regexp (in, "s/beneficial/hazardous/");
+  %endcode
+
+  <p>  
+	If you are reusing regular expressions in a more than casual fashion, you may also want to 
+	look at the regexpression class or the grace-pcre library.
+  </p>
+  
+
+  <h2>Parameter Parsing</h2>
+  <p>
+	If formatting with printf-style arguments is unpractical (for
+	example, because you're dealing with user input that doesn't use
+	pre-defined types), it can be convenient to create a string with a
+	value-object as its parameter. The <sym>strutil::valueparse</sym>
+	function can help you with this:
+  </p>
+  
+  %code wwg_stringmanip_17
+	void doSomething (const value &v) 
+	{ 
+		string out, tmpl; 
+		tmpl = "Hello, $firstname$.\nYou are visitor number $#visitor$\n"; 
+		tmpl = strutil::valueparse (tmpl, v); 
+	} 
+  %endcode
+  
+  <p>
+	The variables posted between dollar-signs will be replaced by the
+	variable inside the sup- plied value object. You can give a number
+	of formatting hints, although these are not as rich as those offered
+	by printf, they can help you with escaping and type-safety:
+  </p>
+  
+  <table class="doc">
+    <tr>
+      <th>Notation</th>
+      <th>Function</th>
+    </tr>
+    <tr>
+      <td><tt>$$#varname$$</tt></td>
+      <td>Output integer value</td>
+    <tr>
+    <tr>
+      <td><tt>$$/varname$$</tt></td>
+      <td>Backslash-escape</td>
+    </tr>
+    <tr>
+      <td><tt>$$^varname$$</tt></td>
+      <td>Safe HTML inclusion, all tags are escaped.</td>
+    </tr>
+    <tr>
+      <td><tt>$$`varname$$</tt></td>
+      <td>Indirect value, equivalent to <tt>var[var["varname"]]</tt></td>
+    </tr>
+    <tr>
+      <td><tt>$$varname::subvar$$</tt></td>
+      <td>Access a child value, equivalent to <tt>var["varname"]["subvar"]</tt></td>
+    </tr>
+  </table>
+
+  <p>
+	This form of variable parsing is also used inside the HTML
+	templating system, which will be further documented in a later
+	chapter.
+  </p>
+
+  <<chapter prev="wwg_using_the_value_class.html" next="wwg_building_applications.html">>
+<</page>>

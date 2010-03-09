@@ -1,0 +1,20 @@
+#!/bin/sh
+. configure.paths
+
+install -m 755 parsechanges $CONFIG_BINPATH/parsechanges
+
+if [ `whoami` = "root" ]; then
+  etcpath=/etc
+else
+  if [ -d "${HOME}/.etc" ]; then
+    etcpath="${HOME}/.etc"
+  else
+    mkdir -p "${HOME}/etc"
+    etcpath="${HOME}/etc"
+  fi
+  mkdir -p "${HOME}/var/run"
+fi
+
+if [ ! -e "${etcpath}/parsechanges.conf" ]; then
+  cp rsrc/parsechanges.conf "$etcpath"/parsechanges.conf
+fi

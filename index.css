@@ -1,0 +1,210 @@
+body
+{
+	font-family: Georgia, serif;
+	font-size: 13px;
+	color: #080602;
+}
+
+.text
+{
+	margin-top: 8px;
+	margin-left: 16px;
+	width: 700px;
+	line-height: 145%;
+}
+
+.pagetoc
+{
+	margin-top: 16px;
+	margin-left: 40px;
+	line-height: 145%;
+	background-image: url("gradient2.jpg");
+	background-repeat: repeat-y;
+	padding: 3px;
+	padding-top: 8px;
+	padding-right: 8px;
+	padding-left: 8px;
+	width: 300px;
+	border-style: solid;
+	border-width: 1px;
+	border-color: #aaaaaa;
+}
+
+.spacer { line-height: 3em; }
+
+.menuleftpad
+{
+	padding-left: 4px;
+}
+
+.menurightpad
+{
+	padding-right: 4px;
+}
+
+a
+{
+	color: #103060;
+}
+
+li
+{
+	margin-right: 50px;
+	margin-left: 24px;
+	padding-top: 3px;
+	padding-bottom: 3px;
+}
+
+a.anchorlink
+{
+	text-decoration: none;
+	color: #221111;
+	font-size: 11px;
+	paragraph-bottom: 23px;
+}
+
+a.toplink
+{
+	text-decoration: none;
+	font-weight: bold;
+	color: #f8f8f8;
+	font-size: 15px;
+}
+
+a.chapter
+{
+	font-weight: bold;
+	color: #181818;
+	text-decoration: none;
+	font-size: 13px;
+}
+
+a.classname
+{
+	font-weight: bold;
+	text-decoration: none;
+}
+
+a.black
+{
+	font-weight: bold;
+	color: #181818;
+	font-size: 17px;
+	margin-left: 36px;
+}
+
+a.lessblack
+{
+	text-decoration: none;
+	color: #484848;
+	font-size: 13px;
+	margin-left: 72px;
+}
+
+h1
+{
+	font-family: GriffonLight, Georgia, serif;
+	font-size: 28px;
+	font-weight: regular;
+	line-height: 100%;
+	color: #b00000;
+}
+
+h2
+{
+	padding-top: 24px;
+	font-family: Georgia, serif;
+	font-size: 19px;
+	font-weight: bold;
+	line-height: 60%;
+	color: #500c04;
+}
+
+h3
+{
+	padding-top: 24px;
+	font-family: Georgia, serif;
+	font-size: 19px;
+	font-weight: bold;
+	line-height: 60%;
+	color: #500c04;
+}
+
+.file {
+	color: #004000;
+	font-weight: bold;
+}
+
+table.doc {
+	table-layout: inherit;
+	font-size: 12px;
+	margin-left: 40px;
+	width: 660px;
+	margin-top: 12px;
+	margin-bottom: 12px;
+	border-width: 1px;
+	border-spacing: ;
+	border-style: solid;
+	border-color: gray;
+	border-collapse: collapse;
+	background-image: url("gradient2.jpg");
+	background-repeat: repeat-y;
+}
+table.doc th {
+	color: #eeeeee;
+	border-width: 1px;
+	padding: 5px;
+	font-weight: bold;
+	border-style: none;
+	border-color: gray;
+	background-image: url("gradient3.jpg");
+	text-align: left;
+}
+table.doc td {
+	border-width: 1px;
+	vertical-align: top;
+	padding: 5px;
+	padding-right: 40px;
+	border-style: solid;
+	border-color: #aaaaaa;
+}
+
+pre {
+	font-family: monospace;
+}
+
+.terminal {
+	border: 1px #bbbbbb solid;
+	padding-left: 8px;
+	margin-left: 40px;
+	background-image: url("gradient2.jpg");
+	background-repeat: repeat-y;
+	font-family: monospace;
+	color: #444444;
+	font-size: 12px;
+	line-height: 105%;
+}
+.prompt { color: black; font-weight: bold; }
+.code {
+	border: 1px #aabbcc solid;
+	padding-left: 8px;
+	margin-left: 40px;
+	background-image: url("gradient.jpg");
+	background-repeat: repeat-y;
+	font-family: monospace;
+	font-size: 12px;
+	line-height: 105%;
+}
+.comment { color: #999999; font-style: italic; }
+.pre { color: #008800; }
+.string { color: #AA5533; }
+.char { color: #FF6633; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #0000C0; }
+.flow { color: #0000C0; }
+.keyword { color: #0000a0; }
+.xmltag { color: #224480; }
+.xmlattr { color: #4466a0; }
+.operator { color: ##000099; font-weight: bold; }

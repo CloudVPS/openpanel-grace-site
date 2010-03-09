@@ -1,0 +1,636 @@
+
+@section main
+<<page title="Working with Grace: Using the value Class" idx="4">>
+  <h1>Using the value Class</h1>
+  <p>
+	The <class>value</class> class is a really flexible way to keep
+	collections of mixed data together. For many applications passing or
+	returning value objects can make a lot of sense: Using structs or classes 
+	for complex data layouts can be both tedious and inflexible. Let's take a
+	look into some of the features of the value class and how you use them.
+  </p>
+  
+  <<toc>>
+
+  <h2>Variant Data</h2>
+  <p>
+	You can stuff any native non-pointer type into a <class>value</class>
+	object, and use it in place of one of those types in most situations, so
+	for instance, this will work just fine:
+  </p>
+  
+  %code wwg_using_the_value_class_1
+	value v = 42;
+	int i = v; // i will contain 42.
+  %endcode
+  
+  <p>
+	In cases where there could be ambiguity about the proper cast, there
+	are some explicit methods you can call on a <class>value</class>:
+  </p>
+  
+  %code wwg_using_the_value_class_2
+	int value::ival (void) 
+	unsigned int value::uval (void) 
+	double value::dval (void) 
+	long long value::lval (void) 
+	unsigned long long value::ulval (void) 
+	bool value::bval (void) 
+	const string &value::sval (void) 
+	const char *value::cval (void)
+  %endcode
+  
+  <p>
+	At any given time, a <class>value</class> object has a stored internal
+	type. If you are interested in the variant type, you can use the
+	<sym>value::itype()</sym> call:
+  <p>
+  
+  %code wwg_using_the_value_class_3
+	void myfunction (const value &val) 
+	{ 
+		switch (val.itype()) 
+		{ 
+		   case i_unset: 
+			   fout.writeln ("void object"); break; 
+		   case i_int: 
+			  fout.writeln ("int object"); break; 
+		   case i_unsigned: 
+			  fout.writeln ("unsigned int object"); break; 
+		   case i_double: 
+			  fout.writeln ("double (float) object"); break; 
+		   case i_long: 
+			  fout.writeln ("long long object"); break; 
+		   case i_ulong: 
+			  fout.writeln ("unsigned long long object"); break; 
+		   case i_bool: 
+			  fout.writeln ("bool object"); break; 
+		   case i_string: 
+			  fout.writeln ("string object"); break; 
+		   case i_ipaddr: 
+			  fout.writeln ("ipv4 object"); break; 
+		   case i_date: 
+			  fout.writeln ("date object"); break; 
+		   case i_currency: 
+			  fout.writeln ("currency object"); break; 
+		} 
+	}
+  %endcode
+  
+
+  <h2>Array Handling</h2>
+  <p>
+	You can use a <class>value</class> as an automatically growing array.
+	There are three ways to create an array:
+  </p>
+  
+  %code wwg_using_the_value_class_4
+	value myarray; 
+	myarray[0] = "Hack"; 
+	myarray[1] = "The"; 
+	myarray[2] = "Planet";
+	
+	value secondarray; 
+	secondarray.newval() = "Hack"; 
+	secondarray.newval() = "The"; 
+	secondarray.newval() = "Planet";
+	
+	value thirdarray = $("Hack") ->
+					   $("The") ->
+					   $("Planet");
+  %endcode
+  
+  <p>
+	The second implementation is more suited for adding members in a
+	loop. Note that arrays are not sparse, so accessing high numbered
+	members creates a lot of objects. Talking about loops, let's see how
+	we can iterate over an array. There are two methods:
+  </p>
+  
+  %code wwg_using_the_value_class_5
+	for (int i=0; i < myarray.count(); ++i) 
+	{ 
+		fout.writeln ("member(%i): %s" %format (i, myarray[i])); 
+	}
+	
+	foreach (node, myarray) 
+	{ 
+		fout.writeln ("member: %s" %format (node)); 
+	}
+  %endcode
+  
+  <p>
+	The first method is useful if, for some reason, you need access to
+	the counted data. The second method, however, can be a bit faster
+	when you need to access the node you want to look at multiple times.
+  </p>
+  
+
+  <h2>Dictionary Handling</h2>
+  <p>
+	A <class>value</class> can also have child values with a named key.
+	Everything works mostly the same here, except the indexes you ask for:
+  </p>
+  
+  %code wwg_using_the_value_class_6
+	value mydict;
+	mydict["question"] = "What is six times eight?"; 
+	mydict["answer"] = 42; 
+	mydict["source"] = "Deep Thought";
+	
+	foreach (node, mydict) 
+	{ 
+	   fout.writeln ("%s: %s" %format (node.id(), node)); 
+	}
+  %endcode
+  
+  <p>
+	You can also mix the two kinds of members, you can use the ucount
+	method to get the count of only the members with no name. These are
+	always at the top of the array:
+  </p>
+  
+  %code wwg_using_the_value_class_7
+	value mydict; 
+	mydict["foo"] = "bar"; // is now equivalent to mydict[0] 
+	mydict.newval() = "test"; // the new mydict[0], foo is moved to the right. 
+	mydict["baz"] = "quux"; // equivalent to mydict[2]. 
+	mydict.newval() = "choo"; // the new mydict[1], foo and baz move right. 
+	
+	fout.writeln ("%i %i" %format (mydict.ucount(), mydict.count())); 
+	// writes '2 4' 
+  %endcode
+  
+  <p>
+	Another lifesaver sometimes is the ability to get an index from the
+	right side of the array by using a negative index:
+  </p>
+  
+  %code wwg_using_the_value_class_8
+	value myrecords; 
+	myrecords.newval(); 
+	myrecords[-1]["name"] = "John Doe"; 
+	myrecords[-1]["email"] = "john@doe.org"; 
+	myrecords.newval(); 
+	myrecords[-1]["name"] = "John Q. Lamer"; 
+	myrecords[-1]["email"] = "john@lamer.org";
+  %endcode
+  
+  <p>
+    Finally, you can also use inline notation using <sym>$$(...)</sym> to
+    create a value object on the fly, this is generally the way
+    to go:
+  </p>
+  
+  %code wwg_using_the_value_class_9
+	value myrecords =
+			$(
+				$("name", "John Doe") ->
+				$("email", "john@doe.org")
+			 ) ->
+			$(
+				$("name", "John Q. Lamer") ->
+				$("email", "john@lamer.org")
+			 );
+  %endcode
+
+
+  <h2>More Child Management</h2>
+  <p>
+	Some other ways to manage the array of children:
+  </p>
+  
+  %code wwg_using_the_value_class_10
+	void handle (const value &arg) 
+	{ 
+		value vleft; 
+		value vright; 
+		
+		vright = arg; 
+		// Move the leftmost two nodes from vright into vleft. 
+		vleft = vright.cutleft (2); 
+		
+		// Clear the vleft value. 
+		vleft.clear(); 
+		// Copy the rightmost node as an array into a newly created 
+		// member in vleft. 
+		// vleft[0][0] will contain vright[-1]. 
+		vleft.newval() = vright.copyright (1); 
+	}
+  %endcode
+  
+  <p>
+	Finally, you can remove individual nodes from a <class>value</class>
+	object:
+  </p>
+  
+  %code wwg_using_the_value_class_11
+	myvalue.rmval ("password"); 
+	myvalue.rmindex (-1); 
+	myvalue.rmindex (2);
+  %endcode
+  
+  <p>
+	Attempts to address nonexistant children this way will silently
+	fail. If you want to check if a particular child is in the set, use
+	the <sym>value::exists</sym> method:
+  </p>
+  
+  %code wwg_using_the_value_class_12
+	if (myvalue.exists ("update-url") 
+	{ 
+		runUpdateFromURL (myvalue["update-url"]); 
+	}
+  %endcode
+  
+  <p>
+	It is advisable to use this for any optional records, specifically
+	avoid scenarios like the one below:
+  </p>
+  
+  %code wwg_using_the_value_class_13
+	if (myvalue["update-uri"]) // <-- Wrong! 
+	if (myvalue["update-uri"].sval().strlen()) // <-- Also wrong!! 
+	if (myvalue["update-uri"] != 0) // <-- Totally wrong! Stop doing this!
+  %endcode
+
+  <p>
+	It's not that these do not work, but each of them creates the child node
+	inside the value object, which adds the extra overhead of creating the
+	object with no extra gain. If the <class>value</class> object is passed
+	as const, asking for members that do not exist leads to unpredictable
+	behavior or thrown exceptions.
+  </p>
+  
+
+  <h2>Attributes</h2>
+  <p>
+	As stated before, a value can also have attributes. This is useful
+	when you are dealing with data sourced from XML. Some forms of data
+	layout also make the distinction between attributes and child
+	nodes beneficial. Here is how you work them:
+  </p>
+  %code wwg_using_the_value_class_14
+	value myEmployee; 
+	myEmployee("type") = "salaried"; 
+	myEmployee("class") = "engineer"; 
+	myEmployee["name"] = "Steve Johnson"; 
+	myEmployee["department"] = "AQ100";
+  %endcode
+  <p>
+	This is the equivalent of the expression:
+  </p>
+
+  %xmlcode xml_engineer
+	<employee type="salaried" class="engineer"> 
+	    <name>Steve Johnson</name> 
+	    <department>AQ100</department> 
+	</employee>
+  %endcode
+  
+  <p>
+	Of course, you can also check for the existence of attributes and
+	remove them:
+  </p>
+  
+  %code wwg_using_the_value_class_15
+	if (myvalue.attribexists ("removeme")) 
+		myvalue.rmattrib ("removeme");
+  %endcode
+  
+  <p>
+	If you want to iterate over the attributes, you can use this trusty
+	macro:
+  </p>
+  
+  %code wwg_using_the_value_class_16
+	foreach (attrib, myvalue.attributes()) 
+	{ 
+		fout.writeln ("attrib %s: %s" %format (attrib.id(), attrib)); 
+	}
+  %endcode
+  
+  <p>
+	Whether or not it makes sense to use attributes in your data layout
+	is up to you, but keep in mind that not all forms of serialization
+	support attributes transparently.
+  </p>
+  
+
+  <h2>Sorting Objects</h2>
+  <p>
+	Sometimes you want to sort the array inside a <class>value</class>
+	object. You can perform sorts on the following criteria:
+  </p>
+  <ul>
+	<li> Alphabetic sort by key </li>
+	<li> Alphabetic sort by value </li>
+	<li> Alphabetic sort by value of a child node with provided key </li>
+	<li> Natural language sort by value </li>
+	<li> Natural language sort by key of child value </li>
+  </ul>
+  <p>
+	Here is a run through the options: 
+  </p>
+  
+  %code wwg_using_the_value_class_17
+	myval.sort (labelSort); // Alphabetic by key. 
+	myval.sort (valueSort); // Alphabetic by value. 
+	myval.sort (recordSort, "name"); // Sort on value of myval[*]["name"] 
+	myval.sort (naturalSort); // Natural sort on value 
+	myval.sort (naturalSort, ""); // Natural sort on key 
+	myval.sort (naturalSort, "name"); // Natural sort on myval[*]["name"]
+  %endcode
+  
+  <p>
+	The natural sort is case-insensitive and alphabetical, but it
+	ignores words like 'the', 'a', 'le', 'la', etc. in the sorting
+	order.
+  </p>
+  
+
+  <h2>Handling CSV Formats</h2>
+  <p>
+	The <class>value</class> class can convert to and from files in the
+	'Comma-Separated Value' format. It supports a number of variations
+	on the idea:
+  <p>
+  
+  %code wwg_using_the_value_class_18
+	//arbitrary data: 
+	"John",42,"Wattson","Developer" 
+	"James",14,"Pimplyface","Trainee" 
+	
+	//data with headers: 
+	"Name","Email" 
+	"Steve","steve@initech.com" 
+	"Dave","dave@initech.com" 
+	
+	//data with headers and an id-field: 
+	"id","Name","Email","AuthorizationLevel" 
+	"john","John Doe","j.doe@organization.co.uk",10 
+	"steve","Steve Wibble","s.wibble@organization.co.uk",25 
+  %endcode
+  
+  <p>
+	The <sym>fromcsv</sym> and <sym>loadcsv</sym> methods can be used
+	to deserialize from any of these formats, either from a string or a disk
+	file:
+  <p>
+  
+  %code wwg_using_the_value_class_19
+	void csvMagic (void) 
+	{ 
+		value in; 
+		in.loadcsv ("arbitrary.csv"); 
+		foreach (row, in) 
+		{ 
+			fout.writeln ("--- ROW ---"); 
+			foreach (column, row) 
+			{ 
+				fout.writeln ("    %s", %format (column)); 
+			} 
+		} 
+		fout.writeln ("\n***"); 
+		in.loadcsv ("withHeaders.csv", true); 
+		
+		foreach (row, in) 
+		{ 
+			fout.writeln ("--- ROW ---"); 
+			foreach (column, row) 
+			{ 
+				fout.writeln ("    %s: %s" %format (column.id(), column)); 
+			} 
+		} 
+		fout.writeln ("\n***"); 
+		in.loadcsv ("withKey.csv", true, "id"); 
+		foreach (row, in) 
+		{ 
+			fout.writeln ("--- ROW %s ---" %format (row.id())); 
+			foreach (column, row) 
+			{ 
+				fout.writeln ("    %s: %s" %format (column.id(), column)); 
+			} 
+		} 
+	}
+  %endcode
+  
+  <p>
+	Writing CSV files is also possible, but you have to keep in mind the
+	limitations:
+  <p>
+  <ul>
+	<li> The <class>value</class>-object must be a two-dimensional array. </li>
+	<li> If headers are to be written, rows must have a uniform column
+		 layout or will be normalized to this point. </li>
+	<li> Attributes are discarded. </li>
+  </ul>
+  
+  <p>
+	Within these bounds you can write them in all three variations, for
+	now we'll only illustrate the third:
+  </p>
+  
+  %code wwg_using_the_value_class_20
+	value v = $("steve",
+					$("Name", "Steve \"Wibble\" Conner") ->
+					$("Email", "steve@myorganization.org") ->
+					$("Home", "/home/steve") ->
+					$("Password", "*") ->
+					$("AuthLevel", 42)) ->
+			  $("dave",
+					$("Name", "Dave De:pmg") ->
+					$("Email", "dave@myorganization.org") ->
+					$("Home", "/home/dave") ->
+					$("Password", "*") ->
+					$("AuthLevel", 42));
+	
+	v.savecsv ("people.csv", true, "Username"); 
+  %endcode
+
+  <p>
+	This will give the following output: 
+  </p>
+  
+  %code wwg_using_the_value_class_21
+	"Username","Name","Email","Home","Password","AuthLevel" 
+	"steve","Steve ""Wibble"" Conner","steve@myorganization.org","/home/steve","*",42 
+	"dave","Dave DeLong","dave@myorganization.org","/home/dave","*",23 
+  %endcode
+
+
+  <h2>Loading INI Files</h2>
+  <p>
+	For some situations, windows-style INI-files are just what the doctor
+	ordered. You can parse these files into a <class>value</class> object,
+	but there are no methods for saving. There are two supported variations.
+	The first one is two-dimensional:
+  </p>
+  
+  %code wwg_using_the_value_class_22
+	license = "GPL" 
+	owner = "john@buyer.org" 
+	[performance] 
+	maxthreads = 16 
+	[customization] 
+	bannerstring = "Welcome to the Pleasure Dome" 
+	user = "ID:10:T"
+  %endcode
+
+  <p>
+	Loading this into a <class>value</class> is pretty straightforward: 
+  </p>
+
+  %code wwg_using_the_value_class_23
+	value v;
+	v.loadini ("myapp.ini"); 
+	fout.writeln ("MyApp Licensed to '%[owner]s' id "
+				  "'%[license]s'" %format (v));
+
+	spawnThreads (v["performance"]["maxthreads"].ival()); 
+	fout.writeln (v["customization"]["bannerstring"]; 
+	if (v["customization"]["user"] == "ID:10:T") 
+	{ 
+		setIdiotModeOn (); 
+	}
+  %endcode
+  
+  <p>
+	The second variation is multi-dimensional, sections can contain a
+	path with each path element separated by a colon:
+  </p>
+  
+  %code wwg_using_the_value_class_24
+	[Alerts] 
+	sendalerts = true 
+	[Alerts:Subscribers:main] 
+	routeto = "10.11.12.13" 
+	[Alerts:Subscribers:fallback] 
+	routeto = "10.11.12.14" 
+  %endcode
+
+  <p>  
+	The <sym>value::loadinitree()</sym> method can take care of these
+	critters:
+  </p>
+  
+  %code wwg_using_the_value_class_25
+	void sendAlert (const value &alertData) 
+	{ 
+		static value conf; 
+		if (! conf) conf.loadinitree ("conf:alerts.ini"); 
+		if (! conf["Alerts"]["sendalerts"]) return; 
+		foreach (target, conf["Alerts"]["Subscribers"]) 
+		{ 
+			sendAlertMessage (target["routeto"], alertData); 
+		} 
+	} 
+  %endcode
+  
+
+  <h2>Native Serialization Using SHoX</h2>
+  <p>
+	The SHoX format is a binary serialization format tailored for
+	<class>value</class> objects. Whenever you're looking for an efficient
+	way to temporarily store or transmit data and XML adds no benefits, this
+	format can make sense. It keeps all member data and attributes intact and
+	saves up to 80% space over conventional XML saves and a lot over parsing
+	overhead. There's not much to demonstrate here, the toshox, saveshox,
+	fromshox and loadshox methods are pretty self-explanatory. The binary
+	format is endian-safe, by the way.
+  </p>
+  
+
+  <h2>The NeXT / Apple 'plist' Format</h2>
+  <p>
+	The Objective-C environment used in Mac OS X is an inheritance from
+	the NeXT era. Grace can load and save the XML variant of this
+	serialization format, which does not support attributes. A typical
+	.plist file looks like this:
+  </p>
+  
+  %xmlcode value_plist_xml_1
+	<?xml version="1.0" encoding="UTF-8"?> 
+	<plist> 
+		<dict> 
+			<key>foo</key> 
+			<string>bar</string> 
+			<key>answers</key> 
+			<dict> 
+				<key>ultimate</key> 
+				<int>42</int> 
+			</dict> 
+			<key>stupidformat</key> 
+			<true/> 
+		</dict> 
+	</plist>
+  %endcode
+  
+  <p>
+	In the 'native' XML schema used by Grace, this same data would look
+	like this:
+  </p>
+  
+  %xmlcode value_grace_xml_1
+	<?xml version="1.0" encoding="UTF-8"?> 
+	<dict> 
+		<string id="foo">bar</string> 
+		<dict id="answers"> 
+			<integer id="ultimate">42</integer> 
+		</dict> 
+		<bool id="stupidformat">true</bool> 
+	</dict>
+  %endcode
+  
+  <p>
+	The <sym>loadplist()</sym>, <sym>fromplist()</sym>,
+	<sym>saveplist()</sym> and <sym>toplist()</sym> methods are actually
+	variations on the xml-related methods that use a built-in schema
+	for this specific format. In a later chapter we will take a closer
+	look at the <class>xmlschema</class> class and what you can do with it.
+  </p>
+  
+
+  <h2>Serializing and Deserializing PHP Arrays</h2>
+  <p>
+	If you're communicating with systems written in PHP, Grace can convert
+	<class>value</class> objects to its native serialization format using
+	the phpserialize and phpdeserialize methods. There are no load/save
+	methods for this format because this particular format ends up going over
+	a network link or a pipe in 99% of the situations. The phpserialize method
+	takes one boolean argument. If you set this to true, Grace will also
+	serialize attributes, but the PHP code on the other side needs to be aware
+	of this. In cases where a node has attributes, its attribute list will end
+	up in an array keyed .attrib and any connected data will move to a child
+	node with the label .data.
+  </p>
+  
+
+  <h2>Simplistic ASCII Serialization</h2>
+  <p>
+	For situations where you want to exchange <class>value</clss> data
+	without attributes and XML feels like overkill, you can use the load,
+	save, encode and decode methods that work with this
+  </p>
+  
+  %code wwg_using_the_value_class_26
+	realName = "Pim van Riezen" 
+	ultimateAnswer = 42 
+	tagLines { 
+	  += "Bad Salad" 
+	  += "Taco Chainsaw" 
+	} 
+	contactHandles { 
+	  email { 
+		work = "pi@panelsix.com" 
+		private = "pi@madscience.nl" 
+	  } 
+	  undernet = "exel" 
+	  skype = "Skypical" 
+	} 
+  %endcode
+  
+  <p>&nbsp;</p>
+  
+  <<chapter prev="wwg_data_classes_in_action.html" next="wwg_string_manipulation.html">>
+<</page>>

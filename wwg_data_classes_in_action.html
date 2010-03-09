@@ -1,0 +1,331 @@
+
+@section main
+<<page title="Working with Grace: Data Classes in Action" idx="3">>
+  <h1>Data Classes in Action</h1>
+  <p>
+    This chapter contains a couple of examples of the core Grace classes
+    as typically used inside a real application.
+  </p>
+  
+  <<toc>>
+  
+  <h2>The Code</h2>
+  <p>
+    Let's take a look at how you typically use a couple of the data
+    classes. A bit of fictional code:
+  </p>
+  
+  %code wwg_data_classes_1
+	#include <grace/str.h> 
+	#include <grace/value.h>
+	
+	// Main application method 
+	int myApp::main (void) 
+	{ 
+		string mystr = "Hello, world"; 
+		statstring statstr = "messageOfPeace";
+		value val = $(statstr, mystr) ->
+					$("ultimateAnswer", 42);
+	
+		if (mystr != val[statstr]) 
+		{ 
+			ferr.writeln ("Something's wrong with this world!"); 
+			return 1; 
+		}
+		
+		// Clear the string and put some formatted text in 
+		mystr = "Message of Peace: %[messageOfPeace]s\n"
+				"Ultimate Answer: %[ultimateAnswer]i\n" %format (val);
+	
+		// Send the string to the output channel. 
+		fout.puts (mystr); 
+		return 0; 
+	}
+  %endcode
+  
+  <p>
+	In this example we use a <class>value</class> object val as an
+	associative array containing two key/value pairs. One is a string, the
+	other is an integer. We use a <class>statstring</class> object as a key
+	inside the value, but regular string constants work just as well. Then we
+	put some formatted text inside a string object and send it to the output
+	channel.
+  </p>
+  
+  <h2>Inline value Declaration</h2>
+  <p>
+	The <sym>$$(...)</sym> statement used above is an example of the inline
+	declaration syntax. Both the root namespace and the <class>value</class>
+	class carry a number of functions starting with '$$'. In the root
+	namespace, such a declaration creates a temporary <class>value</class>
+	object. As a member method, it instructs the existing temporary object to
+	append a new node. Here's how that works out:
+  </p>
+  
+  %code inline_decl.cpp
+	value v;
+	
+	v = $("one"); // ["one"]
+	v = $("one")->$("two"); // ["one","two"]
+	v = $("hello","world"); // {"hello":"world"}
+	
+	// Dictionary with two entries, where the second entry is itself
+	// an array with two nodes:
+	// {"user":"john","favoriteColors":["green","yellow"]}
+	v = $("user","john") ->
+		$("favoriteColors", $("green")->$("yellow"));
+	
+	// Dictionary with type() = "person", two entries an an attribute:
+	v = $type("person") ->
+		$attr("personclass","nerd") ->
+		$("firstname","John") ->
+		$("lastname","Doe");
+	
+	// A value object set to an integer with an attribute:
+	v = $attr("src","deepthought") -> $val(42);
+  %endcode
+  
+  <h2>String Formatting</h2>
+  <p>
+	The <sym>%format</sym> construct is a clever way to get object data
+	converted to a formatted string without explicitly casting everything
+	down to C primitives. In its most basic use, it resembles the libc
+	(s)printf syntax:
+  </p>
+  
+  %code format1.cpp
+    string s;
+    
+    s = "%s" %format ("hi"); // string
+    s = "%s %s" %format ("hello","world"); // two strings
+    s = "%i" %format (144); // an int
+    s = "%U" %format (314159265ULL); // an unsigned 64 bits int.
+    s = "%8s" %format ("waytoolong"); // left-align and crop
+    s = "%-4s" %format ("hi"); // --> "  hi"
+    s = "%.2f" %format (1.5); // 1.50
+  %endcode
+  
+  <p>
+    With everything cast through a <class>value</class> object,
+    format string errors are suddently a lot harder:
+  </p>
+  
+  %code format2.cpp
+    s = "%s" %format (31337); // this is actually *FINE*
+    s = "%s %s" %format ("hello"); // so is this
+  %endcode
+  
+  <p>
+    You're also allowed to mess around a bit more with the order of
+    your data or recall dictionary nodes of the first argument
+    by name, so you can do stuff like this:
+  </p>
+  
+  %code format3.cpp
+	s = "%{1}s, %{0}s." %format ("John","Conner");
+	
+	value v = $("first","John") -> $("last","Doe");
+	s = "%[last]s, %[first]s" %format (v);
+  %endcode
+  
+  <p>
+    Finally, there's a bunch of extra tokens for encoding or escaping
+    certain data types:
+  </p>
+  
+  <table class="doc">
+    <tr>
+      <th>Token</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td>%S</td>
+      <td>Backslash-style escape of quotes, percentage-style
+          escape of non-ASCII characters.</td>
+    </tr>
+    <tr>
+      <td>%X</td>
+      <td>64 bits hexadecimal</td>
+    </tr>
+    <tr>
+      <td>%M</td>
+      <td>Escape for MySQL insertion with apropriate quotes &mdash; your
+          query template need not supply the surrounding quotes.</td>
+    </tr>
+    <tr>
+      <td>%Q</td>
+      <td>ANSI-SQL variant of %M</td>
+    </tr>
+    <tr>
+      <td>%P</td>
+      <td>Represent as an IPv4 address</td>
+    </tr>
+    <tr>
+      <td>%Z</td>
+      <td>Escape xml/html-sensitive characters as entities.</td>
+    </tr>
+    <tr>
+      <td>%!</td>
+      <td>Encode the value object as compact xml</td>
+    </tr>
+    <tr>
+      <td>%J</td>
+      <td>Encode the value object as JSON</td>
+    </tr>
+    <tr>
+      <td>%~</td>
+      <td>Escape as string with urlencoding</td>
+    </tr>
+  </table>
+
+  <h2>Data Objects and Memory Management</h2>
+  <p>
+	Let's take a look at how Grace data objects are passed to and from
+	functions and methods in a way that frees your mind from worrying
+	about memory management.
+  </p>
+  
+   %code wwg_data_classes_2
+	#include <grace/str.h> 
+	#include "myapplication.h" 
+	
+	class personalName 
+	{ 
+	public: 
+		personalName (void) 
+		{ 
+			_first = "John"; 
+			_last = "Doe"; 
+		} 
+		
+		~personalName (void) { } 
+		
+		// Accessor/Setter functions 
+		const string &first (void) const { return _first; } 
+		const string &last (void) const { return _last; } 
+		void first (const string &arg) { _first = arg; } 
+		void last (const string &arg) { _last = arg; } 
+		
+		// Combine the two strings into a new string. 
+		string *makeFullName (void) 
+		{ 
+			returnclass (string) result retain; 
+			result = _first; 
+			result += " "; 
+			result += _last; 
+			return &result; 
+		} 
+		
+	protected: 
+		string _first; 
+		string _last; 
+	};
+	
+	// Main application method. 
+	int myApp::main (void) 
+	{ 
+		personalName nom; 
+		string fname; 
+		
+		nom.first ("Miles"); 
+		nom.last ("Davis"); 
+		
+		fname = nom.makeFullName (); 
+		fout.writeln (fname); 
+		return 0; 
+	}
+  %endcode
+  
+  <p>
+	We defined a class here containing two <class>string</class> objects.
+	Accessor methods for reading or writing these protected strings work
+	on the basis of const references. The <sym>makeFullName</sym> method
+	combines the two strings into a new string and returns this to the
+	caller. This is where Grace does some magic for you. All data
+	classes used in grace display special behavior when they are
+	assigned with a pointer to an object of their own class (either
+	through a copy-constructor or the '=' operator): Instead of bluntly
+	copying the other object's data, it steals its data references and
+	silently removes the temporary object from memory. This mechanism
+	is also set to work between <class>value</class>, <class>string<class>
+	and <class>statstring</class> classes, so stuff like this is
+	fine:
+  </p>
+  
+  %code retainstr2val.cpp
+	string *getAnswer (void)
+	{
+		returnclass (string) res retain;
+		res = "fourty-two";
+		return &res;
+	}
+	
+	int myApp::main (void)
+	{
+		value knowledge;
+		knowledge["universalAnswer"] = getAnswer();
+	}
+  %endcode
+  
+  <p>
+	The <b>returnclass...retain</b> macro creates a temporary object and
+	a temporary reference to it. The object is sent to the caller by
+	deriving the pointer from this reference again. We go through this
+	trouble to give us some convenience in dealing with all the object's
+	overloaded operators, which is somewhat tricky if you only have a
+	pointer. The macro also ensures that the temporary object's memory
+	is allocated from a static pool outside the normal memory allocator.
+	This makes the process faster and allows the Grace library to detect
+	leaks if a caller doesn't assign the return-value coming out of
+	a method to an object to catch its allocation.
+  </p>
+  
+  <h2>Working with IPv4 Addresses</h2>
+  <p>
+    The <class>ipaddress</class> class is pretty easy to use. Here's
+    an example of the class in action:
+  </p>
+  
+  %code ipv4.cpp
+	#include "myapp.h"
+	
+	int myapp::main (void)
+	{
+		ipaddress cnnip;
+		value resolved = netdb::gethostbyname ("cnn.com");
+		fout.writeln ("cnn.com: %P" %format (cnnip));
+		fout.puts (resolved.toxml());
+		return 0;
+	}
+  %endcode
+  
+  <p>
+    Output of the above:
+  </p>
+  
+  %terminal ipv4.out
+  
+
+  <h2>Exploring Data Classes with the Grace Shell</h2>
+  <p>
+	If you want to quickly explore the data classes interactively,
+	make sure you have the <file>grace-util</file> package installed
+	together with Grace. With this in place, the <sh>grace</sh> command
+	with no arguments will spawn an interactive shell. Grace is not
+	an interpreted language, so this shell is of limited use, but it
+	can be useful for exploring the basic classes. Here's what a
+	session in the Grace shell looks like;
+  </p>
+  
+  %terminal gracesh.out
+  
+  <p>
+	Due to the compiled nature of C++, the shell is not all-powerful.
+	Variables that persist can only be of a type that can be stored
+	inside a <class>value</class> object, with the exception of those
+	declared within a {...} block.
+  </p>
+  
+  <p>&nbsp;</p>
+  <<chapter prev="wwg_data_classes.html" next="wwg_using_the_value_class.html">>
+<</page>>

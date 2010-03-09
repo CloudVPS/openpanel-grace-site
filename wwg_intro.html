@@ -1,0 +1,87 @@
+
+@section main
+<<page title="Working with Grace: Introduction" idx="1">>
+  <h1>Introduction</h1>
+  <p>
+	The Grace library is a C++ toolkit for writing system applications that
+	do stuff on or for the Internet. It contains a modest hierarchy of
+	classes that will help you get your things done faster, leaving you more
+	time for important stuff like enjoying family life or showing general
+	disdain for your software's userbase. The library uses several niffty
+	constructs that make it easy to create legible code, which is a blessing
+	for the maintainability of your software. Even though it's natural
+	that you don't care about the mess you leave for the next guy who
+	inherits your code, at least now you can pray that your predecessor at
+	the next gig used Grace.
+  </p>
+  <p>
+	During its development, the library has seen extensive abuse within
+	several telco and ISP environments. The simple concepts it delivers will
+	encourage you to think about your problem at a higher level, while still
+	giving you the benefits of natively compiled C++-code.
+  </p>
+  <p>
+	Of course there is no such thing as a silver bullet for secure or timely
+	software development, but the methods and concepts inside the Grace
+	library can be helpful in preventing the pitfalls that come with
+	designing robust applications that span multiple threads and expose
+	interfaces to the network.
+  </p>
+  
+  <<toc>>
+
+  <h2>Audience</h2>
+  <p>
+	This guide will show you around the library, its classes, and how you
+	can use them to create your own tools and system services in less time.
+	It will be tremendously helpful to your understanding if you have some
+	experience with the C and C++ languages. Grace is on the lighthearted
+	side of the Object Oriented political spectrum, puritans beware!
+  </p>
+
+  <h2>Typographical Conventions</h2>
+  <p>
+    Throughout the documentation, the following formatting will be used:
+    <ul>
+      <li> Classnames: <class>string</class> </li>
+      <li> Terminal commands: <sh>ps axuw</sh> </li>
+      <li> Methods, functions and symbols: <sym>value::toxml()</sym> </li>
+      <li> File and path names: <file>/etc/passwd</file> </li>
+      <li> XML Tags: <xmltag>storpel</xmltag> </li>
+    </ul>
+    Example code will be formatted as follows:
+  </p>
+  
+  %include wwg_intro_typo.cpp
+
+  <p>
+    Interaction with the command line will look like this:
+  </p>
+  
+  %terminal wwg_intro_typo.out
+
+  <p>
+    And this is how XML will render:
+  </p>
+  
+  %xmlcode xml_intro
+	<?xml version="1.0"?>
+	<outerTag>
+	  <innerTag attrib="attribvalue">data</innerTag>
+	</outerTag>
+  %endcode
+  
+
+  <h2>Structure</h2>
+  <p>
+	This guide is set up to progressively disclose functionality and concepts
+	of Grace. It should do a good job complementing the online Doxygen
+	documentation. After working yourself through this book you should be
+	able to create your own programs with Grace and the online
+	documentation. You will be grinding out weapons systems for the upcoming
+	revolution, writing floorspace optimization systems for sweatshops in
+	Thailand or creating a program that will really annoy the Recording
+	Industry Association of America before you know it. 
+  </p>
+  <<chapter prev="" next="wwg_data_classes.html">>
+<</page>>

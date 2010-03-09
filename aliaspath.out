@@ -1,0 +1,6 @@
+$$ _PATH_QUUX=/tmp grace
+$>>> fs.save ("quux:foobar","Hello, world.\n")
+$>>> exit
+$$ cat /tmp/foobar
+Hello, world.
+$$

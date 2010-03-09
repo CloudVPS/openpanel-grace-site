@@ -1,0 +1,13 @@
+$$ ./ex2 --help
+-l --lang [en]: Language (en,nl)
+$$ ./ex2
+Hello, world.
+Hi, everyone.
+Hey, you.
+$$ ./ex2 -l nl
+Hallo, wereld.
+Hoi, iedereen.
+Hee, jij.
+$$ ./ex2 --lang fr
+Unrecognized language: fr
+$$ 

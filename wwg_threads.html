@@ -1,0 +1,344 @@
+
+@section main
+<<page title="Threads" idx="9">>
+  <h1>Threads</h1>
+  <p>
+  	Threads allow for parallel execution in the same way that traditional
+  	forked processes do, but with the possibility of sharing state with
+  	common objects. Grace brings you a powerful thread model that keeps
+  	most of the thread-related hairs out of your soup.
+  </p>
+  
+  <<toc>>
+  
+  <h2>Creating a Thread Subclass</h2>
+  <p>
+  	You define threads by subclassing the <class>thread</class> class.
+  	This class defines the virtual <sym>run</sym> method. The actual
+  	background task gets defined by overriding this virtual:
+  </p>
+  
+  %code thread.cpp
+	class timewriter : public thread
+	{
+	public:
+		timewriter (void) : thread ("timewriter")
+		{
+		}
+		
+		~timewriter (void) {}
+		
+		void run (void)
+		{
+			while (true)
+			{
+				timestamp now = core.time.now ();
+				fs.save ("timestamp", "%s" %format (now));
+				sleep (60);
+			}
+		}
+	};
+	
+	int myApp::main (void)
+	{
+		timewriter thr;
+		thr.spawn ();
+		while (true) sleep (60);
+	}
+  %endcode
+  
+  <h2>Using Locks</h2>
+  <p>
+    In situations where you need access to a common object from multiple
+    thread, you need to wrap it up in a <class>lock</class> template
+    class. Let's take a look at a nonsensical stretch of the timewriter
+    concept above and collect an array of timestamps:
+  </p>
+  
+  %code threadlocks.cpp
+	class myApp : public application
+	{
+	public:
+		myApp (void) : application ("myapp") {}
+		~myApp (void) {}
+		
+		int main (void);
+		void addtimestamp (timestamp ti);
+		timestamp getlasttimestamp (void);
+	
+	protected:
+		lock<value> timestamps;
+	};
+	
+	class timewriter : public thread
+	{
+	public:
+		timewriter (myApp *a) : thread ("timewriter"), app (*a) {}
+		~timewriter (void) {}
+		
+		void run (void)
+		{
+			while (true)
+			{
+				app.addtimestamp (core.time.now());
+				sleep (60);
+			}
+		}
+		
+	protected:
+		myApp &app;
+	};
+	
+	void myApp::addtimestamp (timestamp ti)
+	{
+		exclusivesection (timestamps)
+		{
+			timestamps.newval() = ti;
+		}
+	}
+	
+	timestamp myApp::getlasttimestamp (void)
+	{
+		timestamp res;
+		sharedsection (timestamps)
+		{
+			res = timestamps[-1];
+		}
+		return res;
+	}
+	
+	int myApp::main (void)
+	{
+		timewriter T1 (this);
+		timewriter T2 (this);
+		
+		T1.spawn ();
+		T2.spawn ();
+		
+		while (true)
+		{
+			sleep (10);
+			fout.writeln ("%s" %format (getlasttimestamp()));
+		}
+		return 0;
+	}
+  %endcode
+  
+  <p>
+	The <sym>exclusivesection</sym> and <sym>sharedsection</sym> macros
+	are not the only access to a <class>lock</class>. They can only
+	deal with <class>lock</class> objects that are local to the class.
+	Using them encourages you to keep locking logistics close to the
+	class actually affected. If, however, you have a compelling need
+	to twiddle with a lock from outside a class, you can use the
+	<sym>lockr</sym>, <sym>lockw</sym> and <sym>unlock</sym> methods
+	and the <sym>lock::o</sym> member containing the lock-wrapped
+	object.
+  </p>
+  
+  <h2>Sending and Handling Events</h2>
+  <p>
+	Thread objects are blessed with an <class>eventq</class> mechanism
+	that allows other threads to send them <class>value</class> objects
+	as events. Let's revise our timestamp writing efforts:
+  </p>
+  
+  %code threadevent.cpp
+	class timewriter : public thread
+	{
+	public:
+		timewriter (void) : thread ("timewriter") {}
+		~timewriter (void) {}
+		
+		void run (void)
+		{
+			value ev;
+			bool shouldrun = true;
+			
+			while (shouldrun)
+			{
+				ev = waitevent ();
+				caseselector (ev.type())
+				{
+					incaseof ("write") :
+						fs.save ("timestamp", "%s" %format (core.time.now()));
+						break;
+					
+					incaseof ("shutdown") :
+						shouldrun = false;
+						break;
+						
+					defaultcase : break;
+				}
+			}
+		}
+	};
+	
+	int myApp::main (void)
+	{
+		timewriter T;
+		T.spawn ();
+		T.sendevent ("write");
+		T.sendevent ("shutdown");
+		sleep (10);
+		return 0;
+	}
+  %endcode
+  
+  <p>
+	You can send any extra data by feeding a <class>value</class> as
+	the second argument to <sym>sendevent</sym>, it will end up &mdash;
+	sans its original <sym>type</sym> in the <class>value</class>
+	return from <sym>waitevent</sym>.
+  </p>
+  
+  <h2>Synchronization with Conditionals</h2>
+  <p>
+	The shutdown logic in the previous example was actually kind of
+	shoddy. The <class>conditional</class> class can help you synchronize
+	events like the shutdown example:
+  </p>
+  
+  %code threadconditional.cpp
+	class timewriter : public thread
+	{
+	public:
+		timewriter (void) : thread ("timewriter") {}
+		~timewriter (void) {}
+		
+		void run (void)
+		{
+			...
+					incaseof ("shutdown") :
+						shouldrun = false;
+						shutcond.broadcast ();
+						break;
+						
+					defaultcase : break;
+			...
+		}
+		
+		void shutdown (void)
+		{
+			sendevent ("shutdown");
+			shutcond.wait ();
+		}
+		
+		conditional shutcnd;
+	};
+	
+	int myApp::main (void)
+	{
+		timewriter T;
+		T.spawn ();
+		T.sendevent ("write");
+		T.shutdown ();
+		return 0;
+	}
+  %endcode
+
+  <h2>Grouped Threads</h2>
+  <p>
+    If you're looking at a job load that needs a load of work spread
+    among a number of worker threads, the <class>threadgroup</class> and
+    <class>groupthread</class> classes can be useful:
+  </p>
+  
+  %code groupthread.cpp
+	class output : public thread
+	{
+	public:
+		output (void) : thread ("output") {}
+		~output (void) {}
+		
+		void run (void)
+		{
+			while (true)
+			{
+				value ev = waitevent ();
+				if (ev.type() == "shutdown") return;
+				fout.writeln (ev["text"]);
+			}
+		}
+	};
+		
+	class calcworker : public groupthread
+	{
+	public:
+		calcworker (threadgroup &grp, output &o)
+			: groupthread (grp), out (o)
+		{
+			spawn ();
+		}
+		~calcworker (void)
+		{
+		}
+		
+		void run (void)
+		{
+			while (true)
+			{
+				value ev = waitevent ();
+				if (ev.type() == "shutdown") return;
+				int res = ev["left"] + ev["right"];
+				out.sendevent ("print", $("text", res));
+			}
+		}
+		
+	protected:
+		output &out;
+	};
+	
+	int myApp::main (void)
+	{
+		output O;
+		threadgroup G;
+		calcworker w1 (G, O);
+		calcworker w2 (G, O);
+		calcworker w3 (G, O);
+		
+		w1.sendevent ("calc", $("left",21)->$("right",21));
+		w2.sendevent ("calc", $("left",10)->$("right",32));
+		w3.sendevent ("calc", $("left",3)->$("right",66));
+		G.broadcastevent ("shutdown");
+		sleep (10);
+		return 0;
+	}
+  %endcode
+  
+  <h2>Thread-local Storage</h2>
+  <p>
+    Sometimes it's useful to keep an object around that is unique
+    to each individual thread. The <class>perthread</class> template
+    is a pretty useful candidate for this. The logic behind
+    the <class>configdb</class> class and the current working directory
+    kept by the <class>filesystem</class> are examples. Here's how it
+    works:
+  </p>
+  
+  %code perthread
+	class doodad
+	{
+	public:
+		doodad (void) {}
+		~doodad (void) {}
+		
+		int getmagic (void)
+		{
+			int res = magicint.get();
+			if (! res) magicint = res = rand();
+			return res;
+		}
+		
+	protected:
+		perthread<int> magicint;
+	};
+  %endcode
+  
+  <p>
+	If you want a class to be available within the <class>perthread</class>
+	context, implementing a functioning <sym>operator=</sym> is necessary.
+  </p>
+  
+  <<chapter prev="wwg_networking.html" next="wwg_building_daemons.html">>
+<</page>>

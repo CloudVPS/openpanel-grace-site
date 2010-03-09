@@ -1,0 +1,24 @@
+$$ ./ex4
+main: Starting server on port *:1135
+$$ telnet 127.0.0.1 1135
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+PUT /mynote HTTP/1.0
+Content-type: application/json
+Content-length: 44
+
+{"doctype":"note","text":"This is a test"}
+HTTP/1.1 200 OK
+Content-type: application/json
+Content-length: 12
+
+{"ok":true}
+Connection closed by foreign host.
+$$ tail event.log 
+Dec  3 00:09:01 main     [INFO ]: Starting server on port *:1135
+Dec  3 00:09:01 main     [INFO ]: Starting threads
+Dec  3 00:10:05 memstore [INFO ]: 127.0.0.1 store &lt;/mynote&gt;
+$$ curl http://127.0.0.1:1135/mynote
+{"doctype":"note","text":"This is a test"}
+$$ 

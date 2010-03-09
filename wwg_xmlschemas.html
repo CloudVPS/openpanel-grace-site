@@ -1,0 +1,751 @@
+
+@section main
+<<page title="XML Schemas" idx="11">>
+  <h1>XML Schemas</h1>
+  <p>
+	The <class>value</class> class implements a rich in-memory
+	representation of structured object data, with a tree-like
+	structure and a secondary attribute structure. It is specifically
+	designed to map easily to XML-like languages, and with the
+	<class>xmlschema</class> class you write out your internal
+	structure in a wide selection of common encoding techniques.
+  </p>
+  
+  <<toc>>
+  
+  <h2>Native encoding</h2>
+  <p>
+    First let's take a look at a data structure the way it comes out
+    of the <sym>savexml</sym> method with no schema arguments. Here's
+    the code:
+  </p>
+  
+  %code xmlschema1
+	{
+		value obj = $("UserName", "jsmith") ->
+					$("UserID", 1001) ->
+					$("Password",
+						$attr("crypt", "plain") ->
+						$val("s3cret")
+					 ) ->
+					$("FirstName", "John") ->
+					$("LastName", "Smith") ->
+					$("AddressData",
+						$("StreetName", "145th Street") ->
+						$("HouseNumber", "10") ->
+						$("ZipCode", "90157") ->
+						$("City", "Smackville") ->
+						$("State", "Maine")
+					 ) ->
+					$("GroupMemberships",
+						$("GroupOne") ->
+						$("GroupTwo")
+					 );
+	}
+  %endcode 
+  
+  <p>
+    The GraceXML output looks like this:
+  </p>
+  
+  %xmlcode xmlschema1
+	<?xml version="1.0"?> 
+	<dict> 
+		<string id="UserName">jsmith</string> 
+		<unsigned id="UserID">1001</unsigned> 
+		<string id="Password" crypt="plain">s3cret</string> 
+		<string id="FirstName">John</string> 
+		<string id="LastName">Smith</string> 
+		<dict id="AddressData"> 
+			<string id="StreetName">145th Street</string> 
+			<string id="HouseNumber">10</string> 
+			<string id="ZipCode">90157</string> 
+			<string id="City">Smackville</string> 
+			<string id="State">Maine</string> 
+		</dict> 
+		<array id="GroupMemberships"> 
+			<string>GroupOne</string> 
+			<string>GroupTwo</string> 
+		</array> 
+	</dict> 
+  %endcode
+  
+  <p>
+	Of course we do not live in an ideal world where everybody agrees that
+	this is the best and only way to serialize data to XML. In fact, there are
+	a lot of people out there that may appear to be actively out on thwarting
+	any effort a person could reasonably come up with to achieve both easy
+	object serialization and easy interchange with the formats of other people
+	through the same mechanism. Most of the times, developers have to set out
+	on archeological expeditions wading through a tree of objects with all
+	kinds of filters and enumerators. The grace XML schema system performs this
+	seemingly impossible task in a very diverse range of situations. The
+	actual schema files are not about just defining the format of the XML data;
+	The most important aspect is definition of the actual function of the tags
+	involved in a particular format.
+  </p>
+  
+  <h2>Applying an XML Schema</h2>
+  <p>
+	An <class>xmlschema</class> object can be passed as an extra parameter
+	to the XML-related import and export methods of the <class>value</class>
+	class:
+  </p>
+  
+  %code usexmlschema.cpp
+	#include <grace/xmlschema.h>
+	
+	int myApp::main (void)
+	{
+		xmlschema S;
+		value storpels;
+		string err;
+		
+		if (! S.load ("schema:storpel.schema.xml")) return 1;
+		if (! storpels.loadxml ("etc:storpels.xml", S, err))
+		{
+			ferr.writeln ("XML Error: %s" %format (err));
+			return 1;
+		}
+		return 0;
+	}
+  %endcode
+  
+  <p>
+  	The error string argument is optional parameter you can supply if
+  	you want to log or print out XML parser errors.
+ </p>
+  
+  <h2>Using the Tag Type as a Key</h2>
+  <p>
+  	To see how this works out, let's find some other ways of expressing data.
+  	Let's start with a nice one that's easily done:
+  </p>
+  
+  %xmlcode inxml
+	<?xml version="1.0"?> 
+	<articleOrder> 
+	  <articleCode>WNN-8254</articleCode> 
+	  <orderQuantity>1</orderQuantity>
+	</articleOrder> 
+  %endcode
+
+  <p>  
+	This is probably the most common (and most sensible) way of expressing
+	data. The tag type is used as a de-facto key for child elements. The
+	schema for this record format would look like this:
+  </p>
+  
+  %xmlcode schema
+	<?xml version="1.0"?> 
+	<xml.schema> 
+	  <xml.class name="articleOrder"> 
+		<xml.type>dict</xml.type> 
+		<xml.proplist> 
+		  <xml.member class="articleCode" id="articleCode"/> 
+		  <xml.member class="orderQuantity" id="orderQuantity"/> 
+		</xml.proplist> 
+	  </xml.class> 
+	  <xml.class name="articleCode"><xml.type>string</xml.type></xml.class> 
+	  <xml.class name="orderQuantity"><xml.type>integer</xml.type></xml.class> 
+	</xml.schema> 
+  %endcode
+
+  <p>
+	The schema defines three xml classes. The first one,
+	<xmltag>articleOrder</xmltag> is defined to be a key/value container (or
+	dict). It can contain child objects of two classes. Both of these classes
+	have a defined relationship between their tag type (class) and their id
+	within the context of the parent container. The two child classes have
+	their own definition, showing them to be leaf objects with string and
+	integer data respectively.
+  </p>
+  
+  <p>
+	This model of strict enumeration is recommended for schemas that
+	are expected to become very complex and those that need the
+	ability to contain unkeyed arrays. You can also tell
+	<class>xmlschema</class> to automatically make the tag name the
+	explicit key by indicating this in the options section:
+  </p>
+  
+  %xmlcode schema_tagkey
+	<?xml version="1.0"?>
+	<xml.schema>
+	  <xml.schema.options>
+	    <xml.option.defaulttagkey>true</xml.option.defaulttagkey>
+	  </xml.schema.options>
+	  <xml.class name="threadcount">
+	    <xml.type>integer</xml.type>
+	  </xml.class>
+	</xml.schema>
+  %endcode
+  
+  <p>
+	Any tags not implicitly defined in the <xmltag>xml.proplist</xmltag>
+	of their parent tag with an <sym>id</sym> property are assumed
+	to have their tags as a key in this scenario. They are assumed
+	to be string values unless if the class is explicitly declared
+	in an <xmltag>xml.class</xmltag> with a type, like the
+	<sym>threadcount</sym> example above.
+  </p>
+  
+  <h2>Mixing Tag and Attribute Keys</h2>
+  <p>
+	Let's look at a variation on the previous schema for some other
+	definitions.
+  </p>
+  
+  %xmlcode inxml
+	<?xml version="1.0"?> 
+	<shoppingBasket> 
+	  <article> 
+		<articleCode>AF-28</articleCode> 
+		<articleQuantity>2</articleQuantity> 
+		<articleCost> 
+		  <cost class="product" currency="EUR">10.00</cost> 
+		  <cost class="shipping" currency="EUR">5.00</cost> 
+		</articleCost> 
+	  </article> 
+	  <article> 
+	   <articleCode>BX-15</articleCode> 
+		<articleQuantity>1</articleQuantity> 
+		<articleCost> 
+		  <cost class="product" currency="EUR">25.00</cost> 
+		</articleCost> 
+	  </article> 
+	</shoppingBasket>
+  %endcode
+  
+  <p>
+	The first difference with the earlier layout is the way the root node
+	works: It contains a list of one or more objects of the same class
+	(<xmltag>article</xmltag>, in this instance). Another difference is the
+	<xmltag>cost</xmltag> object, which has an attribute class for its primary
+	key. The XML schema for this layout would look like this:
+  </p>
+  
+  %xmlcode schema
+	<?xml version="1.0"?> 
+	<xml.schema> 
+	  <!-- the root class, an array of article objects --> 
+	  <xml.class name="shoppingBasket"> 
+		<xml.type>array</xml.type> 
+		<xml.proplist> 
+		  <xml.member class="article"/> 
+		</xml.proplist> 
+	  </xml.class> 
+	  <xml.class name="article"> 
+		<xml.type>dict</xml.type> 
+		<xml.proplist> 
+		  <xml.member class="articleCode" id="articleCode"/> 
+		  <xml.member class="articleQuantity" id="articleQuantity"/> 
+		  <xml.member class="articleCost" id="articleCost"/> 
+		</xml.proplist> 
+	  </xml.class> 
+	  <xml.class name="articleCode"><xml.type>string</xml.type></xml.class> 
+	  <xml.class name="articleQuantity"><xml.type>string</xml.type></xml.class> 
+	  
+	  <xml.class name="articleCost"> 
+		<xml.type>dict</xml.type> 
+		<xml.proplist> 
+		  <xml.member class="cost"/> 
+		</xml.proplist> 
+	  </xml.class> 
+	  <xml.class name="cost"> 
+		<xml.type>float</xml.type> 
+		<xml.attributes> 
+		  <xml.attribute label="class" mandatory="true" isindex="true"> 
+			<xml.type>string</xml.type> 
+		  </xml.attribute> 
+		  <xml.attribute label="currency" mandatory="true"> 
+			<xml.type>string</xml.type> 
+		  </xml.attribute> 
+		</xml.attributes> 
+	  </xml.class> 
+	</xml.schema>
+  %endcode
+  
+  <p>
+	There are two collection classes defined here that have child nodes with
+	no implied 'id' for their class. In the case of the
+	<xmltag>shoppingBasket</xmltag> root node, this is because it contains a
+	numbered array. In the cast of the <xmltag>articleCost</xmltag> object,
+	the indexing is achieved through the class attribute of the
+	<xmltag>cost</xmltag> object.
+  </p>
+  <p>
+	The <xmltag>xml.attributes</xmltag> definition enumerates any attributes a
+	particular class has and how they should be handled. The mandatory
+	attribute determines whether the attribute is expected. The isindex
+	attribute is a boolean indicating whether a particular attribute should be
+	considered the object's index key. There should be at most one attribute
+	flagged with isindex.
+  </p>
+
+  <h2>Wrapping the Value</h2>
+  <p>
+	Let's get more complicated. Sometimes, people get carried away when
+	designing XML formats, or they're using a limited form of XML parsing that
+	leads to weird constructs that are less easily mapped one-on-one to a tree
+	of value objects, at least not in a way that makes them easy to access
+	or manipulate. Here's a simple example:
+  </p>
+  
+  %xmlcode inxml
+	<?xml version="1.0"?> 
+	<settings> 
+	  <localCurrency><string>EUR</string></localCurrency> 
+	  <localLanguage><string>Dutch</string></localLanguage> 
+	</settings> 
+  %endcode
+  
+  <p>
+	The straightforward way of mapping this would create problems because of
+	the, mostly redundant, <xmltag>string</xmltag> objects around the object's
+	true value. There can be some legitimate reasons for going this way, for
+	instance when the actual type of the data cannot be predefined. The XML
+	schema language recognizes the concept where a miniature hierarchy of XML
+	nodes represents a single node of data with the concept of wraps
+	containers. Let's take a look at a workable schema for this:
+  </p>
+  
+  %xmlcode schema
+	<?xml version="1.0"?> 
+	<xml.schema> 
+	  <xml.class name="settings"> 
+		<xml.type>dict</xml.type> 
+		<xml.proplist> 
+		  <xml.member class="localCurrency" id="localCurrency"/> 
+		  <xml.member class="localLanguage" id="localLanguage"/> 
+		</xml.proplist> 
+	  </xml.class> 
+	  <xml.class name="localCurrency"> 
+		<xml.type>container</xml.type> 
+		<xml.container> 
+		  <xml.container.types> 
+			<xml.container.type id="string">string</xml.container.type> 
+		  </xml.container.types> 
+		</xml.container> 
+	  </xml.class> 
+	  <xml.class name="localLanguage"> 
+		<xml.type>container</xml.type> 
+		<xml.container> 
+		  <xml.container.types> 
+			<xml.container.type id="string">string</xml.container.type> 
+		  </xml.container.types> 
+		</xml.container> 
+	  </xml.class> 
+	  <xml.class name="string" wrap="true" contained="true"> 
+		<xml.type>string</xml.type> 
+	  </xml.class> 
+	</xml.schema> 
+  %endcode
+  
+  <p>
+	The schema defines the <xmltag>localCurrency</xmltag> and
+	<xmltag>localLanguage</xmltag> classes to be containers. What this means
+	is that not all details of the resulting data object are defined by the
+	tag. In this instance, we are only concerned with wrapping the data's
+	type into a child node. The definitions inside
+	<xmltag>xml.container.types</xmltag> offer a mapping between datatypes and
+	direct child nodes. In this example, only string data is defined.
+  </p>
+  <p>
+	The definition of the <xmltag>string</xmltag> class shows two extra
+	attributes: wrap and contained that help the parser understand that tags
+	of this type require special treatment with regards to their parent nodes.
+  </p>
+  
+  <h2>Container Arrays</h2>
+  <p>
+	Let's expand on containers a bit more and look at a subset of Apple's
+	plist format:
+  </p>
+  
+  %xmlcode inxml
+	<?xml version="1.0"?> 
+	<dict> 
+	  <key>firstName</key> 
+	  <string>John</string> 
+	  <key>lastName</key> 
+	  <string>Doe</string> 
+	</dict>
+  %endcode
+  
+  <p>
+	It's not really the kind of format you want to offer for other people to
+	parse, but sometimes there's no choosing whom to talk to. The XML schema
+	for this layout looks like this:
+  </p>
+  
+  %xmlcode schema
+	<?xml version="1.0"?> 
+	<xml.schema> 
+	  <xml.class name="dict"> 
+		<xml.type>container</xml.type> 
+		<xml.container> 
+		  <xml.container.idclass>key</xml.container.idclass> 
+		  <xml.container.types> 
+			<xml.container.type id="string">string</xml.container.type> 
+		  </xml.container.types> 
+		</xml.container> 
+	  </xml.class> 
+	  <xml.class name="string" contained="true"> 
+		<xml.type>string</xml.type> 
+	  </xml.class> 
+	</xml.schema>
+  %endcode
+  
+  <p>
+	The <xmltag>xml.container.idclass</xmltag> indication is intended for
+	containers that are key/value arrays. It defines a key object that
+	preceeds a value object for every child data node. The lack of a wrap
+	attribute in the definition of the <xmltag>string</xmltag> class means
+	that the data node will end up as a child of the container, not as an
+	integral part of it.
+  </p>
+
+  <h2>Advanced Wrapping</h2>
+  <p>
+	It's time to put wrapping capabilities to the logical extreme, a subset of
+	the patently ridiculous XMLRPC layout:
+  </p>
+  
+  %xmlcode inxml
+	<?xml version="1.0"?> 
+	<params> 
+	  <param> 
+		<name>firstName</name> 
+		<value> 
+		  <string>John</string> 
+		</value> 
+	  </param><param> 
+		<name>lastName</name> 
+		<value> 
+		  <string>Doe</string> 
+		</value> 
+	  </param> 
+	</params> 
+  %endcode
+  
+  <p>
+	This schema has two useless fluff classes beyond Apple's schema. The
+	<xmltag>param</xmltag> object envelopes each data node that is a child
+	of the container. An extra <xmltag>value</xmltag> object envelopes the
+	actual contained value. When confronted with such a layout, you have to
+	wonder what kinds of drugs were in fashion among the working group that
+	came up with it. Luckily xmlschema can still cut through this. The schema
+	for the above circus ends up like this:
+  </p>
+  
+  %xmlcode schema
+	<?xml version="1.0"?> 
+	<xml.schema> 
+	  <xml.class name="params"> 
+		<xml.type>container</xml.type> 
+		<xml.container> 
+		  <xml.container.wrapclass>param</xml.container.wrapclass> 
+		  <xml.container.valueclass>value</xml.container.valueclass> 
+		  <xml.container.idclass>name</xml.container.idclass> 
+		  <xml.container.types> 
+			<xml.container.type id="string">string</xml.container.type> 
+		  </xml.container.types> 
+		</xml.container> 
+	  </xml.class> 
+	  <xml.class name="string"><xml.type>string</xml.type></xml.class> 
+	</xml.schema>
+  %endcode
+
+  <p>
+	That's about as complicated as you can get with wrapping, although there
+	are still some tricks that can be useful.
+  </p>
+  
+  <h2>Making Things Interesting</h2>
+  <p>
+	Let's cook up a likely scenario where we want some aggressive wrapping to
+	keep access paths short, lots of stupid factors get in our way:
+  </p>
+  
+  %xmlcode inxml
+	<?xml version="1.0"?> 
+	<UeberXML> 
+	  <retailPrice source="catalog"> 
+		<currency name="EUR" amount="10.25"/> 
+	  </retailPrice> 
+	  <wholesalePrice source="vendor"> 
+		<currency name="USD" amount="7.45"/> 
+	  </wholesalePrice> 
+	  <remoteDescription href="http://vendor.com/arts/1857243"/> 
+	  <productTag>cool</productTag> 
+	  <productTag>fresh</productTag> 
+	  <productTag>hip</productTag> 
+	</UeberXML>
+  %endcode
+
+  <p>  
+	The <xmltag>currency</xmltag> node has the characteristics of a wrapped
+	node, but the source attribute of the <xmltag>retailPrice</xmltag> and
+	<xmltag>wholesalePrice</xmltag> tags needs to be preserved as well. We
+	want the amount attribute of the <xmltag>currency</xmltag> object to be
+	the object's value. The <xmltag>productTag</xmltag> nodes should really be
+	in their own array. There's also something special about how we'll handle
+	the <xmltag>remoteDescription</xmltag> node.
+  </p>
+  <p>
+	Here's the schema taking care of things: 
+  </p>
+  
+  %xmlcode schema
+	<?xml version="1.0"?> 
+	<xml.schema> 
+	  <xml.class name="UeberXML"> 
+		<xml.type>dict</xml.type> 
+	  <xml.proplist> 
+		 <xml.member class="retailPrice" id="retailPrice"/> 
+		 <xml.member class="wholesalePrice" id="wholesalePrice"/> 
+		 <xml.member class="myunion" id="description"/> 
+		 <xml.member class="prouctTag" id="tags"/> 
+	   </xml.proplist> 
+	  </xml.class> 
+	
+	  <xml.class name="retailPrice"> 
+		<xml.type>container</xml.type> 
+		<xml.attributes> 
+		  <xml.attribute label="source"><xml.type>string</xml.type></xml.attribute> 
+		</xml.attributes> 
+		<xml.container> 
+		  <xml.container.types> 
+			<xml.container.type id="string">currency</xml.container.type> 
+			<xml.container.type id="float">currency</xml.container.type> 
+			<xml.container.type id="integer">currency</xml.container.type> 
+		  </xml.container.types> 
+		</xml.container> 
+	  </xml.class> 
+	 
+	  <xml.class name="wholesalePrice"> 
+		<xml.type>container</xml.type> 
+		<xml.attributes> 
+		  <xml.attribute label="source"><xml.type>string</xml.type></xml.attribute> 
+		</xml.attributes> 
+		<xml.container> 
+		  <xml.container.types> 
+			<xml.container.type id="string">currency</xml.container.type> 
+			<xml.container.type id="float">currency</xml.container.type> 
+			<xml.container.type id="integer">currency</xml.container.type> 
+		  </xml.container.types> 
+		</xml.container> 
+	  </xml.class> 
+	  
+	  <xml.class name="currency" wrap="true" contained="true" attribvalue="amount"> 
+		<xml.type>string</xml.type> 
+		<xml.attributes> 
+		  <xml.attribute label="name"><xml.type>string</xml.type></xml.attribute> 
+		  <xml.attribute label="amount"><xml.type>string</xml.type></xml.attribute> 
+		</xml.attributes> 
+	  </xml.class>
+	  
+	  <xml.class name="myunion"> 
+		<xml.type>union</xml.type> 
+		<xml.union> 
+		  <xml.union.match class="remoteDescription" 
+						   type="attribexists" label="href"/> 
+		  <xml.union.match class="localDescription" type="default"/> 
+		</xml.union> 
+	  </xml.class>
+	  
+	  <xml.class name="remoteDescription" union="myunion"> 
+		<xml.type>string</xml.type> 
+		<xml.attributes> 
+		  <xml.attribute label="href" mandatory="true"> 
+			<xml.type>string</xml.type> 
+		  </xml.attribute> 
+		</xml.attributes> 
+	  </xml.class> 
+
+	  <xml.class name="localDescription" union="myunion"> 
+		<xml.type>string</xml.type> 
+	  </xml.class> 
+	  <xml.class name="productTag" array="true"> 
+		<xml.type>string</xml.type> 
+	  </xml.class> 
+	  
+	</xml.schema>
+  %endcode
+
+  <p>  
+	First note how, by defining an attribute to the container class instead of
+	the wrapped value class, attributes are automatically combined into the
+	singular data object. In the class definition of <xmltag>currency</xmltag>
+	the attribvalue attribute indicates that the data value should be pulled
+	out of an attribute labelled "amount".
+  </p>
+  <p>
+	The class definition labelled "myunion" represents an abstract union class
+	that can morph between tag types depending on some defined conditions.
+	In this example, a node marked as a myunion object will be transcribed as
+	a <xmltag>remoteDescription</xmltag> object if there's a href attribute,
+	otherwise the default <xmltag>localDescription</xmltag> object will be
+	used. Finally, the array attribute in the definition of the
+	<xmltag>productTag</xmltag> class indicates to the schema system that
+	objects of this class should be considered child nodes of an implicit
+	array. If we would convert the example layout with this schema data to
+	grace native XML, it would look like this:
+  </p>
+  
+  %xmlcode outxml
+	<?xml version="1.0"?> 
+	<UeberXML> 
+	  <string id="retailPrice" source="catalog" name="EUR">10.25</string> 
+	  <string id="wholesalePrice" source="vendor" name="USD">7.45</string> 
+	  <string id="description" href="http://vendor.com/arts/1857243"/> 
+	  <array id="tags"> 
+		<string>cool</string> 
+		<string>fresh</string> 
+		<string>hip</string> 
+	  </array> 
+	</UeberXML>
+  %endcode
+  
+  <p>
+	If you're wondering who would come up with such a convoluted format, this
+	might be a good time to disclose that the schema and data are used by one
+	of the test scripts.
+  </p>
+  
+  <h2>Example: Push Access Protocol</h2>
+  <p>
+	Now for a real world example, the WAPForum-specified PAP format for
+	submitting Push messages to a PPG system. These messages look like this:
+  </p>
+  
+  %xmlcode inxml
+	<?xml version="1.0"?> 
+	<!DOCTYPE pap PUBLIC "-//WAPFORUM//DTD PAP 1.0//EN" 
+						 "http://www.wapforum.org/DTD/pap_1.0.dtd"> 
+	<pap> 
+	  <push-message push-id="1234_@_thozie_._de"> 
+		<address address-value="WAPPUSH=127.0.0.1/TYPE=USER@127.0.0.1" /> 
+	  </push-message> 
+	</pap>
+  %endcode
+  
+  <p>
+	The only thing really new here is the document type indicator. Some
+	protocols need it to be present, in such cases the schema can define it.
+  </p>
+  <p>
+	A schema for the PAP layout:
+  </p>
+  
+  %xmlcode schema
+	<?xml version="1.0"?> 
+	<xml.schema> 
+	  <xml.schema.options> 
+		<xml.option.doctype name="pap" 
+		 status="PUBLIC" 
+		 dtd="http://www.wapforum.org/DTD/pap_1.0.dtd" 
+		>-//WAPFORUM//DTD PAP 1.0//EN</xml.option.doctype> 
+	  </xml.schema.options> 
+	  <xml.class name="pap"> 
+		<xml.type>dict</xml.type> 
+		<xml.proplist> 
+		  <xml.member class="push-message"/> 
+		</xml.proplist> 
+	  </xml.class> 
+	  <xml.class name="push-message"> 
+		<xml.type>array</xml.type> 
+		<xml.attributes> 
+		  <xml.attribute label="push-id" mandatory="true" isindex="true"> 
+			<xml.type>string</xml.type> 
+		  </xml.attribute> 
+		</xml.attributes> 
+		<xml.proplist> 
+		  <xml.member class="address"/> 
+		</xml.proplist> 
+	  </xml.class> 
+	  <xml.class name="address" attribvalue="address-value"> 
+		<xml.type>string</xml.type> 
+		<xml.attributes> 
+		  <xml.attribute label="address-value"> 
+			<xml.type>string</xml.type> 
+		  </xml.attribute> 
+		</xml.attributes> 
+	  </xml.class> 
+	</xml.schema>
+  %endcode
+  
+  <p>
+	The new <xmltag>xml.schema.options</xmltag> section defines the doctype
+	that should be written inside <xmltag>xml.option.doctype</xmltag> node,
+	with the DTD public status in the status attribute, the URL for the DTD in
+	the href attribute and the actual identification string as data.
+  </p>
+  
+  <h2>Boolean Values as Objects</h2>
+  <p>
+	The final trick is value-implicated booleans. It's an Apple classic,
+	observe:
+  </p>
+  
+  %xmlcode inxml
+	<?xml version="1.0"?> 
+	<Sosumi> 
+	  <firstOption><true/></firstOption> 
+	  <secondOption><false/></secondOption> 
+	</Sosumi>
+  %endcode
+
+  <p>
+	Lovely, isn't it? By using the container system, we can work ourselves out
+	of it, though, by defining a special boolean type in the schema. Here's
+	a quick implementation of the above layout as a schema:
+  </p>
+  
+  %xmlcode schema
+	<?xml version="1.0"?> 
+	<xml.schema> 
+	  <xml.class name="Sosumi"> 
+		<xml.type>dict</xml.type> 
+		<xml.proplist> 
+		  <xml.member class="firstOption" id="firstOption"/> 
+		  <xml.member class="secondOption" id="secondOption"/> 
+		</xml.proplist> 
+	  </xml.class> 
+	  <xml.class name="firstOption"> 
+		<xml.type>container</xml.type> 
+		<xml.container> 
+		  <xml.container.types> 
+			<xml.container.type id="bool.true">true</xml.container.type> 
+			<xml.container.type id="bool.false">false</xml.container.type> 
+		  </xml.container.types> 
+		</xml.container> 
+	  </xml.class> 
+	  <xml.class name="secondOption"> 
+		<xml.type>container</xml.type> 
+		<xml.container> 
+		  <xml.container.types> 
+			<xml.container.type id="bool.true">true</xml.container.type> 
+			<xml.container.type id="bool.false">false</xml.container.type> 
+		  </xml.container.types> 
+		</xml.container> 
+	  </xml.class> 
+	  <xml.class name="bool.true" contained="true" wrap="true"> 
+		<xml.type>bool.true</xml.type> 
+	  </xml.class> 
+	  <xml.class name="bool.false" contained="true" wrap="true"> 
+		<xml.type>bool.false</xml.type> 
+	  </xml.class> 
+	</xml.schema> 
+  %endcode
+  
+  <p>
+	This trick is only available for booleans, obviously. The bool.true and
+	bool.false classes define a <xmltag>true/</xmltag> and
+	<xmltag>false/</xmltag> object that indicate both a boolean type and its
+	members.
+  </p>
+
+  <<chapter prev="wwg_building_daemons.html" next="wwg_data_validation.html">>
+<</page>>

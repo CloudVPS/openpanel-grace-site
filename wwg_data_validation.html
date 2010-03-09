@@ -1,0 +1,376 @@
+
+@section main
+<<page title="Data Validation" idx="12">>
+  <h1>Data Validation</h1>
+  <p>
+	All this reading about schemas may have made you wonder about validation.
+	For most XML schema languages, it's what the schema is there for to begin
+	with. Within grace, validation is handled by an entirely different class
+	and as a separate step from data translation. The potentially complex
+	wrapping and mangling happening in the translation schemas implemented by
+	the xmlschema class make its schema language less suitable for defining
+	data restraints. For that reason, grace defines the separate validator
+	class that acts upon the native, in-memory representation. A side-effect
+	of this approach is that software using these classes is more liberal in
+	what it will accept from the outside and more strict in what it emits,
+	which is how the internet likes things. The validation process involves
+	itself with a number of restraints that you would want to place on your
+	data:
+	
+	<ul>
+	  <li> Defining mandatory and optional child keys and attributes. </li>
+	  <li> Verifying mandatory dependencies resulting from optional child
+	  	   keys and attributes. </li>
+	  <li> Checking the actual data against validation criteria. </li>
+	</ul>
+	
+	The <class>validator</class> class handles all the magic. It reads
+	validation rules from <path>validator.xml</path> files that will
+	supply it with rulesets and error definitions.
+  </p>
+  
+  <<toc>>
+  
+  <h2>Using the validator Class</h2>
+  <p>
+	The validator class uses its own schema language. Such a validation schema
+	can best be seen as a language controlling both iteration over a tree of
+	data and validation of members, attributes and data. As a first example,
+	we will look at a simple record type:
+  </p>
+  
+  %xmlcode inxml
+	<?xml version="1.0"?> 
+	<dict> 
+	  <string id="username">john428</string> 
+	  <integer id="maxtimeout">80</integer> 
+	  <string id="accounttype">user</string> 
+	</dict> 
+  %endcode
+  
+  <p>
+	A possible validation schema for such a record could look like this:
+  </p>
+  
+  %xmlcode validator
+	<?xml version="1.0"?> 
+	<grace.validator> 
+	  <datarule id="root"> 
+		<match.mandatory> 
+		  <mandatory type="child" key="username"/> 
+		  <mandatory type="child" key="maxtimeout"/> 
+		  <mandatory type="child" key="accounttype"/> 
+		</match.mandatory> 
+		<match.child> 
+		  <and> 
+			<match.id>username</match.id> 
+			<match.rule>username</match.rule> 
+		  </and> 
+		  <and> 
+			<match.id>maxtimeout</match.id> 
+			<match.rule>maxtimeout</match.rule> 
+		  </and> 
+		  <and> 
+			<match.id>accounttype</match.id> 
+			<match.rule>accounttype</match.rule> 
+		  </and> 
+		</match.child> 
+	  <datarule> 
+	  <datarule id="username"> 
+		<match.data errorcode="101" errortext="Invalid username"> 
+		  <regexp>[[:alnum:]]{2,8}</regexp> 
+		</match.data> 
+	  </datarule> 
+	  <datarule id="maxtimeout"> 
+		<match.data errorcode="102" errortext="Timeout too high"> 
+		  <lt>3600</lt> 
+		</match.data> 
+		<match.data errorcode="103" errortext="Timeout too low"> 
+		  <gt>60</gt> 
+		</match.data> 
+	  </datarule> 
+	  <datarule id="accounttype"> 
+		<match.data errorcode="104" errortext="Invalid accounttype"> 
+		  <text>user</text> 
+		  <text>moderator</text> 
+		  <text>administrator</text> 
+		</match.data> 
+	  </datarule> 
+	</grace.validator>
+  %endcode
+  
+  <p>
+	As you can see, the <xmltag>grace.validator</xmltag> class contains a list
+	of <xmltag>datarule</xmltag> objects that can be seen as the validation
+	rules for a single data node. All the child nodes of a given
+	<xmltag>datarule</xmltag> object define a criterium and the node is only
+	considered valid if all of them report a positive result. A
+	<xmltag>match.mandatory</xmltag> criterium defines a list of mandatory
+	children and/or attributes. If a <xmltag>mandatory</xmltag> status is
+	defined for a child or attribute, its absence in the data node will
+	trigger a failure. You can also flag a child or attribute with an
+	<xmltag>optional</xmltag> object, which itself can contain one or more
+	<xmltag>optional</xmltag> and <xmltag>mandatory</xmltag> objects to handle
+	optional objects that trigger mandatory dependencies.
+  </p>
+
+  <p>  
+	A <xmltag>match.child</xmltag> criterium triggers an iteration over all of
+	the data node's child object. The criterium will be evaluated as valid as
+	long as one of the matches is succesful. You can use <xmltag>and</xmltag>
+	as well as <xmltag>or</xmltag> objects to group together certain
+	conditions. Any of the other matchtypes is also allowed within this
+	context. The <xmltag>match.rule</xmltag> object, for instance, is just a
+	command to jump to evaluating the current match against a different
+	<xmltag>datarule</xmltag> object. There's nothing stopping you from using
+	these rules inline.
+  </p>
+
+  <p>
+	Underneath you will find an overview of the objects involved with the
+	validator schemas, including their attributes and possible child objects.
+  </p>
+  
+  <h2>match.data</h2>
+  <p>
+	Match the object's data against a list of criteria. The child nodes are
+	combined with a logical OR, implying that a minimum of one of the child
+	criteria must match for the data to be considered valid.
+  </p>
+  
+  <p>
+	If you have a need for multiple data criteria lists to match against you
+	can use the <xmltag>and</xmltag>> object to combine multiple
+	<xmltag>match.data</xmltag> segments.
+  </p>
+  
+  <table class="doc">
+    <tr><th colspan="2">Attributes</th></tr>
+    <tr>
+      <td>errorcode</td>
+      <td>Error code to return if object data does not match against the
+          criteria.</td>
+    </tr>
+    <tr>
+      <td>errortext</td>
+      <td>Error text to return if validation failed.</td>
+    </tr>
+    <tr><th colspan="2">Children</th></tr>
+    <tr>
+      <td><xmltag>text</xmltag></td>
+      <td>Match against a literal text string</td>
+    </tr>
+    <tr>
+      <td><xmltag>regexp</xmltag></td>
+      <td>Match against a regular expression</td>
+    </tr>
+    <tr>
+      <td><xmltag>lt</xmltag></td>
+      <td>Match if integer value of data is less than provided value</td>
+    </tr>
+    <tr>
+      <td><xmltag>gt</xmltag></td>
+      <td>Match if integer value of data is less than provided value</td>
+    </tr>
+    <tr>
+      <td><xmltag>minsz</xmltag></td>
+      <td>Match minimum string size</td>
+    </tr>
+    <tr>
+      <td><xmltag>maxsz</xmltag></td>
+      <td>Match maximum string size</td>
+    </tr>
+  </table>
+  
+  <h2>match.id</h2>
+  <p>
+    Match the object's key to a value
+  </p>
+
+  <table class="doc">
+    <tr><th colspan="2">Attributes</th></tr>
+    <tr>
+      <td>errorcode</td>
+      <td>Error code to return if object data does not match against the
+          criteria.</td>
+    </tr>
+    <tr>
+      <td>errortext</td>
+      <td>Error text to return if validation failed.</td>
+    </tr>
+    <tr><th colspan="2">Children</th></tr>
+    <tr>
+      <td>[CDATA]</td>
+      <td>The matching key</td>
+    </tr>
+  </table>
+  
+  <h2>match.child</h2>
+  <p>
+    Match every child object against a set of rules. The rules are combined
+    with a logical OR, where the validation succeeds if at least one of the
+    child objects returns a positive result.
+  </p>
+
+  <table class="doc">
+    <tr><th colspan="2">Attributes</th></tr>
+    <tr>
+      <td>errorcode</td>
+      <td>Error code to return if object data does not match against the
+          criteria.</td>
+    </tr>
+    <tr>
+      <td>errortext</td>
+      <td>Error text to return if validation failed.</td>
+    </tr>
+    <tr><th colspan="2">Children</th></tr>
+    <tr>
+      <td><xmltag>and</xmltag></td>
+      <td>Perform a logical AND on a chain of child rules</td>
+    </tr>
+    <tr>
+      <td><xmltag>match.id</xmltag></td>
+      <td>Match a key</td>
+    </tr>
+    <tr>
+      <td><xmltag>match.rule</xmltag></td>
+      <td>Perform a match for the child object against a
+          <xmltag>datarule</xmltag></td>
+    </tr>
+    <tr>
+      <td><xmltag>match.data</xmltag></td>
+      <td>Perform a match against the child's data</td>
+    </tr>
+    <tr>
+      <td><xmltag>match.attrib</xmltag></td>
+      <td>Perform a match against the child's attributes</td>
+    </tr>
+    <tr>
+      <td><xmltag>match.child</xmltag></td>
+      <td>Perform a match against the child's children.</td>
+    </tr>
+    <tr>
+      <td><xmltag>match.mandatory</xmltag></td>
+      <td>Perform a match against the child's mandatory child keys
+          and attributes</td>
+    </tr>
+  </table>
+  
+  <h2>match.rule</h2>
+  <p>
+  	Match object against another <xmltag>datarule</xmltag> set.
+  </p>
+  
+  <table class="doc">
+    <tr><th colspan="2">Children</th></tr>
+    <tr>
+      <td>[CDATA]</td>
+      <td>The matching key</td>
+    </tr>
+  </table>
+
+  <h2>match.attrib</h2>
+  <p>
+	Match every attribute against a set of rules. The rules re combined
+	with a logcal OR, where the validation succeeds if at least one of
+	this rule's child rules yields  positive result.
+  </p>
+  
+  <table class="doc">
+    <tr><th colspan="2">Attributes</th></tr>
+    <tr>
+      <td>errorcode</td>
+      <td>Error code to return if object data does not match against the
+          criteria.</td>
+    </tr>
+    <tr>
+      <td>errortext</td>
+      <td>Error text to return if validation failed.</td>
+    </tr>
+    <tr><th colspan="2">Children</th></tr>
+    <tr>
+      <td><xmltag>and</xmltag></td>
+      <td>Perform a logical AND on a chain of child rules</td>
+    </tr>
+    <tr>
+      <td><xmltag>match.id</xmltag></td>
+      <td>Match a key</td>
+    </tr>
+    <tr>
+      <td><xmltag>match.data</xmltag></td>
+      <td>Perform a match against the child's data</td>
+    </tr>
+  </table>
+  
+  <h2>match.mandatory</h2>
+  <p>
+  	Match mandatory sub-objects or optionals with mandatory dependencies.
+  </p>
+  
+  <table class="doc">
+    <tr><th colspan="2">Children</th></tr>
+	<tr>
+	  <td><xmltag>mandatory</xmltag></td>
+	  <td>Match a mandatory sub-object</td>
+	</tr>
+	<tr>
+	  <td><xmltag>optional</xmltag></td>
+	  <td>Match an optional sub-object</td>
+	</tr>
+  </table>
+  
+  <h2>mandatory</h2>
+  <p>
+  	Define a mndatory child object or object attribute with its key.
+  </p>
+  
+  <table class="doc">
+    <tr><th colspan="2">Attributes</th></tr>
+    <tr>
+      <td>type</td>
+      <td>Either "child" or "attrib"</td>
+    </tr>
+    <tr>
+      <td>key</td>
+      <td>The key of the mandatory child or attribute</td>
+    </tr>
+    <tr>
+      <td>errorcode</td>
+      <td>Error code to return if object does not match against the criteria</td>
+    </tr>
+    <tr>
+      <td>errortext</td>
+      <td>Error text to return if validation failed</td>
+    </tr>
+  </table>
+  
+  <h2>optional</h2>
+  <p>
+  	Define an optional child object or object attribute, with depending
+  	sub-rules.
+  </p>
+  
+  <table class="doc">
+    <tr><th colspan="2">Children</th></tr>
+    <tr>
+      <td><xmltag>optional</xmltag></td>
+      <td>Depending optional rule</td>
+    </tr>
+    <tr>
+      <td><xmltag>mandatory</xmltag></td>
+      <td>Depending mandatory rule</td>
+    </tr>
+    <tr><th colspan="2">Attributes</th></tr>
+    <tr>
+      <td>type</td>
+      <td>Either "child" or "attrib"</td>
+    </tr>
+    <tr>
+      <td>key</td>
+      <td>The key of the optional child or attribute</td>
+    </tr>
+  </table>
+  
+  <p>&nbsp;</p>
+  <<chapter prev="wwg_xmlschemas.html" next="wwg_templates.html">>
+<</page>>

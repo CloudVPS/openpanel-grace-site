@@ -1,0 +1,82 @@
+
+@section main
+<<page title="About">>
+  <h1>About Grace</h1>
+  <p>
+	C++ has gotten a <a
+	href="http://www.amazon.com/gp/blog/post/PLNK161I4L1UV4A43">bad rep</a>
+	and attracted a lot of <a href="http://article.gmane.org/gmane.comp.version-control.git/57918">
+	haters</a>. Still, the language is far from dead and not very likely to
+	die any time soon. Lots of effort has been put, through various projects,
+	into creating systems and libraries that hide some of the more ugly parts
+	and ease programming. Grace is one of those attempts. It is a project that
+	has grown over a couple of years to introduce, through a combination of
+	useful classes and clever macros, clear and easy ways to perform a lot of
+	computing tasks in C++.
+  </p>
+  <p>
+	This project is not for C++ purists. Code written for Grace will look more
+	like Python or PHP than your run-of-the-mill C++ program. What it 
+	delivers is code that you can read back the next morning &mdash; it will
+	make sense, even if it touches nasty subjects like threading and text
+	munging.
+  </p>
+  <p>
+	This project is also not for those people looking for ever-increasing
+	thrills that find them in <a href="http://www.google.com/search?rls=en&q=site:programming.reddit.com+haskell">esoteric</a>
+	<a href="http://www.google.com/search?rls=en&q=site:programming.reddit.com+erlang">programming</a>
+	<a href="http://www.google.com/search?rls=en&q=site:programming.reddit.com+ruby">concepts </a>
+	that allow them to use yet more clever ways to express mundane operations
+	in increasingly illegible runes that, while looking really clever
+	and perhaps sometimes even making sense for particular operations, are
+	more likely to <a href="http://en.wikipedia.org/wiki/Monads_in_functional_programming">make your head spin</a>.
+	Grace is for the rest of us that prefer, for now, programming to be
+	a bit more straight forward in the context of, well, getting things
+  done.
+  </p>
+
+  <h3>Features</h3>
+  <p>
+	Grace has been succesfully used in a number of ISP infrastructure
+	projects in the past couple of years, so many of the features have
+	risen out of specific needs. There are some of the notable features
+	the library has picked up over time:
+	<ul>
+	  <li>It can deal with often idiotic XML designs from third parties,
+		  allowing you to access the data in a straightforward way that
+		  doesn't involve cursoring over a christmas tree of XML nodes.</li>
+	  <li>It can parse and handle other rich data formats, including
+		  CSV, INI-files, JSON, plists (binary, too, with some encouragement)
+		  and flat ASCII.</li>
+	  <li>It can help you set up a quick HTTP or SMTP service to handle
+		  custom requests for interfacing with your software.</li>
+	  <li>It can communicate with external HTTP or SMTP services.</li>
+	  <li>It deals with most of the pains of creating threads and
+		  communicating between them.</li>
+	  <li>It has classes for interacting with file- and network-based
+		  (flat and relational) databases.</li>
+	  <li>It mimicks the look and feel of higher level languages like
+		  Python and PHP (in the sense of features like ducktyped
+		  variables and inline declarations, not in the sense that it
+		  forces you to write gibberish code like a drunken lemur).</li>
+	</ul>
+	None of this is in itself ground breaking, the real gain is in the
+	amount of structure your code can expose at a glance &mdash; take
+	a look at the <a href="examples.html">examples</a> to see for
+	yourself, or browse through the
+	<a href="documentation.html">documentation</a>
+  </p>
+  
+  <h3>Benefits</h3>
+  <p>
+	Grace has already been succesfully used in a number of real world
+	applications with a nice track record in uptimes. The most prominent
+	publically available project using Grace right now is
+	<a href="http://www.openpanel.com/">OpenPanel</a>. ISP automation
+	software with a need for communicating with outside systems
+	that speak a variety of exchange protocols is insanely easy to
+	build with Grace.
+  </p>
+  
+  <p>&nbsp;</p>
+<</page>>

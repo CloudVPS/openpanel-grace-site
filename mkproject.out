@@ -1,0 +1,14 @@
+$$ grace mkproject
+Application domain [nl.madscience.unregistered.apps]: com.openpanel.apps
+Application name: storpelcount
+Creating com.openpanel.apps.storpelcount
+$$ cd com.openpanel.apps.storpelcount/
+$$ ls -l
+-rw-r--r--  1 pi  pi    471 Jun 26 22:38 Makefile
+-rwxr-xr-x  1 pi  pi  18229 Jun 26 22:38 configure
+-rw-r--r--  1 pi  pi     43 Jun 26 22:38 configure.in
+-rw-r--r--  1 pi  pi    293 Jun 26 22:38 main.cpp
+-rwxr-xr-x  1 pi  pi    126 Jun 26 22:38 makeinstall
+drwxr-xr-x  6 pi  pi    204 Jun 26 22:38 rsrc
+-rw-r--r--  1 pi  pi    485 Jun 26 22:38 storpelcount.h
+$$ 

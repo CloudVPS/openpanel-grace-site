@@ -1,0 +1,39 @@
+
+@section main
+<<page title="Documentation">>
+  <h1>Documentation</h1>
+  <p>
+	For a complete class reference, you can go to the
+	<a href="/doxygen/">Doxygen</a> documentation. This online manual
+	is a work in progress, expect frequent changes to the material.
+  </p>
+  <p>
+  <table border="0" width="100%"><tr><td valign="top">
+  @set pos = 0
+  @set chap = 0
+  @set maxpos = 0
+  @loop wwgdocs
+    <!-- x -->
+    @set sub = 0
+    @if $maxpos$ == 0
+	  @set maxpos = $_loopcount$
+	  @set maxpos += 1
+	  @set maxpos /= 2
+	@endif
+    @set pos += 1
+    @set chap += 1
+    @if $pos$ > $#maxpos$
+      @set pos = 0
+      </td><td valign="top">
+    @endif
+    <b><a href="$filename$" class="black">$chap$ $title$</a></b><br/>
+    @loop headings
+      @set sub += 1
+      <a href="$filename$#$anchor$" class="lessblack">$title$</a><br/>
+    @endloop
+    <br/>
+  @endloop
+    </td>
+  </tr></table>
+  </p>
+<</page>>

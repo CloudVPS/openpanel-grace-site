@@ -1,0 +1,7 @@
+
+@define lam <xx>
+@define /lam </xx>
+
+@section main
+  <<lam>>hoi<</lam>> daar.
+

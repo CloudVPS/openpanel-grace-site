@@ -1,0 +1,4 @@
+$$ ./calculate_answer
+42
+$$ ./calculate_answer --show-question
+Usage: ./calculate_answer

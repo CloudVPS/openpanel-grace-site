@@ -1,0 +1,5 @@
+#!/bin/bash
+cp *.png *.jpg site/
+cp *.css site/
+./build_toc
+./mksite/mksite *.html

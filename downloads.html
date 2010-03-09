@@ -1,0 +1,70 @@
+
+@section main
+<<page title="Downloads">>
+  <h1>Downloads</h1>
+  The latest version of grace is <b>0.9.32</b>. You can download it here:<br>
+  <table class="doc">
+    <tr>
+      <th>File</th>
+      <th>Release Date</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td><a href="grace-0.9.33.tar.gz">grace-0.9.33.tar.gz</a></td>
+      <td>2010-03-09</td>
+      <td>Main library and build utilities</td>
+    </tr>
+    <tr>
+      <td><a href="grace-0.9.32.tar.gz">grace-0.9.32.tar.gz</a></td>
+      <td>2010-02-28</td>
+      <td>Main library and build utilities</td>
+    </tr>
+    <tr>
+      <td><a href="grace-0.9.29.tar.gz">grace-0.9.29.tar.gz</a></td>
+      <td>2009-04-03</td>
+      <td>Main library and build utilities</td>
+    </tr>
+    <tr>
+      <td><a href="grace-util-0.9.0.tar.gz">grace-util-0.9.0.tar.gz</a></td>
+      <td>2008-06-30</td>
+      <td>Extra utilities</td>
+    </tr>
+    <tr>
+      <td><a href="grace-0.9.23.tar.gz">grace-0.9.23.tar.gz</a></td>
+      <td>2008-06-30</td>
+      <td>Main library and build utilities</td>
+    </tr>
+    <tr>
+      <td><a href="grace-0.9.22.tar.gz">grace-0.9.22.tar.gz</a></td>
+      <td>2008-06-13</td>
+      <td>Main library and build utilities</td>
+    </tr>
+    <tr>
+      <td><a href="grace-0.9.21.tar.gz">grace-0.9.21.tar.gz</a></td>
+      <td>2008-06-06</td>
+      <td>Main library and build utilities</td>
+    </tr>
+  </table>
+  <br/>
+  <h3>Change Log</h3>
+  <table class="doc">
+    <tr>
+	  <th>Version</th>
+	  <th>Changes</th>
+	</tr>
+    @loop changes
+      <tr>
+		<td width="100"><b>$@$</b><br/>$date$</td>
+		<td>
+		  <ul>
+			@loop bullets
+			  <li> $bullet$ </li>
+			@endloop
+		  </ul>
+		</td>
+	  </tr>
+    @endloop
+  </table>
+  <br/>
+  <br/>
+<</page>>

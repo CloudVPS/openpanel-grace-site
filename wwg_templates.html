@@ -1,0 +1,189 @@
+
+@section main
+<<page title="HTML Templates" idx="13">>
+  <h1>HTML Templates</h1>
+  <p>
+	Sometimes it's convenient to format your application's data as an
+	HTML document. The <class>scriptparser</class> class can help you
+	create simple templates that combine your data with minimal
+	logic flow into HTML. The scripting commands that come with this
+	templating engine are minimalistic, their intention is to be
+	more about structured data formatting than serious control flow.
+  </p>
+  
+  <<toc>>
+  
+  <h2>Using scriptparser</h2>
+  <p>
+	The <class>scriptparser</class> class turns your HTML template
+	into a syntax tree, which you later evaluate through the
+	<sym>run</sym> method:
+  </p>
+  
+  %code scriptparser1.cpp
+	#include <grace/scriptparser.h>
+	
+	int myApp::main (void)
+	{
+		value data = gatherData();
+		scriptparser script;
+		string out;
+
+		script.build (fs.load ("tmpl:data.thtml"));
+		script.run (data, out);
+		fout.puts (out);
+		return 0;
+	}
+  %endcode
+  
+  <p>
+    A template page consists of one or more sections indicated by the
+    <sh>&#64;section</sh> command. The parameter data passed to
+    <sym>scriptparser::run</sym> is available by surrounding the
+    variable key by dollar signs:
+  </p>
+  
+  %xmlcode simple.thtml
+	&#64;section main
+	<html>
+		<head>
+			<title>Information about $firstname$ $lastname$</title>
+		</head>
+		<body>
+			First name: $firstname$<br/>
+			Last name: $lastname$<br/>
+		</body>
+	</html>
+  %endcode
+  
+  <h2>Using Sections</h2>
+  <p>
+	The <sh>&#64;section</sh> command allows you to create 'subroutines'
+	inside your template. You can reference other templates by putting it
+	in as a double-bracketed html tag <xmltag>&lt;likethis&gt;</xmltag>. Any
+	attributes included will be stored into the script environment
+	variables:
+  </p>
+  
+  %xmlcode sections.thtml
+	&#64;section page
+		<html>
+			<head>
+				<title>$title$</title>
+			</head>
+			<body>
+				<div class="content">
+	
+	&#64;section /page
+				</div>
+			</body>
+		</html>
+	
+	&#64;section main
+		<&lt;page title="Hello, world"&gt;>
+			Hi, world.
+		<&lt;/page&gt;>
+  %endcode
+  
+  <p>
+	This allows you to express more complex markup as mere metatags,
+	making the page structure more obvious.
+  </p>
+  
+  <h2>Looping Through Arrays</h2>
+  <p>
+	Sometimes it's convenient to represent a list of objects in the
+	HTML output. To make this possible, <class>scriptparser</class> has
+	the <sh>&#64;loop</sh> and <sh>&#64;endloop</sh> commands. Given an
+	array like this:
+  </p>
+  
+  %code loopcpp.cpp
+	value env = $("products",
+					$("STPX001",
+						$("name", "Storpel") ->
+						$("price", 14.95)
+					 )->
+					$("ARRW001",
+						$("name", "Arrow") ->
+						$("price", 4.95)
+					 )->
+					$("USANRO1",
+						$("name", "Flag pin") ->
+						$("price", 1.95)
+					 );
+
+	script.run (env, out);
+  %endcode
+  
+  <p>and a template like this:</p>
+  
+  %xmlcode loop.thtml
+	&#64;section main
+		<&lt;page title="products"&gt;>
+			<table border="0">
+				&#64;loop products
+					<tr>
+						<td><a href="$@$.html">$name$</a></td>
+					</tr>
+				&#64;endloop
+			</table>
+		<&lt;/page&gt;>
+  %endcode
+  
+  <p>
+	the template will go through all the entries in the env["products"]
+	dictionary. The <sym>$$@$$</sym> variable contains the current
+	index of the node being inspected inside the loop. Please note that
+	the scriptparser doesn't distinguish variable scope, so namespace
+	clashes can happen between inner-loop variables and declarations
+	outside the loop.
+  </p>
+  
+  <h2>Conditional Evaluation</h2>
+  <p>
+	The <sh>&#64;if</sh> command is <class>scriptparser</class>'s
+	primitive implementation of conditional parsing. Its implementation
+	is about as sophisticated as that of a typical shell environment: Two
+	values can be compared with a specific operator. The values are
+	expanded from variables:
+  </p>
+  
+  %xmlcode cmdif.thtml
+	&#64;if $#count$ == 0
+	  count is 0.
+	&#64;endif
+	&#64;if $#counter$ > 8
+	  counter > 8
+	&#64;endif
+	&#64;if "$user$" == ""
+	  no user found
+	&#64;endif
+	&#64;if "$user$" != "root"
+	  not allowed
+	&#64;endif
+  %endcode
+  
+  <h2>Assigning and Modifying Variables</h2>
+  <p>
+	The <sh>&#64;set</sh> command allows you to set or change
+	the contents of a variable. Like <sh>&#64;if</sh>, it's a basic
+	left side, operator, right side deal with no further expression
+	evaluation. You have the following options:
+  </p>
+  
+  %xmlcode setvars.thtml
+	&#64;set name = "John"
+	&#64;set count = 0
+	&#64;set count += 1
+	&#64;set count *= 4
+	&#64;set name ~= "s/John/Mike/"
+	&#64;set name += " Hunt"
+	
+	&#64;set thevar = "name"
+	&#64;set $thevar$ = "John Doe"
+  %endcode
+  
+  <p>&nbsp;</p>
+  <<chapter prev="wwg_data_validation.html" next="wwg_http_server.html">>
+<</page>>

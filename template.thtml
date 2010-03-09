@@ -1,0 +1,117 @@
+
+@section page
+<html>
+  <head>
+    <link href="index.css" rel="stylesheet" type="text/css" />
+    <title>Grace - $title$</title>
+  </head>
+  <body>
+    <center>
+    <table height="240" width="99%" border="0" cellspacing="1" cellpadding="0" bgcolor="black">
+      <tr>
+        <td background="logo_bg.png" align="left" valign="middle">
+          <img src="grace_logo.png" />
+        </td>
+        <td width="408" background="zengarden.png">&nbsp;</td>
+      </tr>
+      <tr>
+        <td colspan="2" bgcolor="black">
+          <table border="0" cellspacing="0" cellpadding="0" width="100%">
+            <tr>
+              <td class="menuleftpad" align="left" width="12%"><a href="index.html" class="toplink">About</a></td>
+              <td align="center" width="18%"><a href="examples.html" class="toplink">Examples</a></td>
+              <td align="center" width="20%"><a href="documentation.html" class="toplink">Documentation</a></td>
+              <td align="center" width="18%"><a href="contact.html" class="toplink">Contact</a></td>
+              <td align="center" width="18%"><a href="downloads.html" class="toplink">Downloads</a></td>
+              <td class="menurightpad" align="right" width="14%"><a href="http://hg.openpanel.com/grace/" class="toplink">Mercurial</a></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" bgcolor="#fcfcfc">
+          <div class="text">
+
+@section toc
+			@set sub = 0
+		    @set _file ~= "s/.tmphtml$$//"
+		    @set divset = "no"
+		    @loop wwgdocs
+		      @if "$filename$" == "$_file$"
+		        @loop headings
+		          @set sub += 1
+				  @if "$divset$" == "no"
+					<div class="pagetoc">
+					@set divset = "yes"
+				  @endif
+		          <a class="anchorlink" href="#$anchor$">$title$</a><br/><p class="spacer"></p>
+		        @endloop
+		        @if "$divset$" == "yes"
+		          </div>
+		        @endif
+		      @endif
+		    @endloop
+		    @loop otherpages
+		      @if "$filename$" == "$_file$"
+		        @loop headings
+				  @if "$divset$" == "no"
+					<div class="pagetoc">
+					@set divset = "yes"
+				  @endif
+		          <a class="anchorlink" href="#$anchor$">$title$</a><br/><p class="spacer"></p>
+		        @endloop
+		        @if "$divset$" == "yes"
+		          </div>
+		        @endif
+		      @endif
+		    @endloop
+		  
+@section chapter
+			<center>
+			  <table width="100%" border="0">
+			    <tr>
+			      <td width="33%" align="left">
+					@if "$prev$" != ""
+					  <a href="$prev$" class="chapter">Previous Chapter</a>
+					@endif
+			      </td>
+			      <td width="34%" align="center">
+			        <a href="documentation.html" class="chapter">Table of Contents</a>
+			      </td>
+			      <td width="33%" align="right">
+			        @if "$next$" != ""
+			          <a href="$next$" class="chapter">Next Chapter</a>
+			        @endif
+			      </td>
+			    </tr>
+			  </table>
+			</center>
+
+@define file <span class="file">
+@define /file </span>
+@define sh <tt><b>
+@define /sh </b></tt>
+@define flag <b></i>
+@define /flag </i></b>
+@define sym <b><i>
+@define /sym </b></i>
+@define class <a class="classname" href="http://grace.openpanel.com/doxygen/class$name$.html">$name$</a>
+@define xmltag <b>&lt;
+@define /xmltag &gt;</b>
+
+@section section
+  @set paracount += 1
+  @set anchor = "$name$"
+  @set anchor ~= "s/ /_/g"
+  @set anchor ~= "s@[-'/,:.()]@@g"
+  <a name="$anchor$"></a><h2>$name$</h2>
+  
+@section /page
+		  </div>
+        </td>
+      </tr>
+    </table>
+    </center>
+  </body>
+</html>
+

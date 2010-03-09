@@ -1,0 +1,5 @@
+#!/bin/sh
+. configure.paths
+
+cp -r mksite.app $CONFIG_BINPATH/
+ln -s mksite.app/exec $CONFIG_BINPATH/mksite

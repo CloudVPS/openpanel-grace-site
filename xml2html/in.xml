@@ -1,0 +1,17 @@
+	<?xml version="1.0"?>
+	<grace.runoptions>
+	  <grace.option id="-h">
+	    <grace.long>--help</grace.long>
+	  </grace.option>
+	  <grace.option id="-i">
+	    <grace.long>--input-file</grace.long>
+	  </grace.option>
+	  <grace.option id="--help">
+	    <grace.argc>0</grace.argc>
+	  </grace.option>
+	  <grace.option id="--input-file">
+	    <grace.argc>1</grace.argc>
+	    <grace.default>/var/db/storpels</grace.default>
+	    <grace.help>Storpel file to process</grace.help>
+	  </grace.option>
+	</grace.runoptions>

@@ -1,0 +1,16 @@
+$$ ./ipv4test
+cnn.com: 64.236.16.20
+<?xml version="1.0" encoding="UTF-8"?>
+<dict id="resolved">
+	<array id="name">
+		<string>cnn.com</string>
+	</array>
+	<array id="address">
+		<ipaddress>64.236.16.20</ipaddress>
+		<ipaddress>64.236.16.52</ipaddress>
+		<ipaddress>64.236.24.12</ipaddress>
+		<ipaddress>64.236.29.120</ipaddress>
+	</array>
+</dict>
+$$ 
+

@@ -1,0 +1,361 @@
+
+@section main
+<<page title="Files" idx="7">>
+  <h1>Files</h1>
+  <p>
+  	Within Grace, there are several ways to treat access to files, suitable
+  	both for quick load/save jobs and more elaborate asynchronous i/o 
+  	with timeouts. On top of that, Grace abstracts the filesystem itself
+  	to facilitate alias paths and a thread-local working directory.
+  </p>
+  
+  <<toc>>
+
+  <h2>The filesystem Class</h2>
+  <p>
+    The global <sh>fs</sh> object is a singleton instance of the
+    <class>filesystem</class> class. It is the quickest path to
+    getting files in and out of a <class>string</class> object:
+  </p>
+  
+  %code fs_loadsave
+	#include <grace/filesystem.h>
+	
+	void dumbify (const string &filename)
+	{
+		string text = fs.load (filename);
+		if (text)
+		{
+			text.replace ($("the","teh"));
+			fs.save (filename, text);
+		}
+	}
+  %endcode
+  
+
+  <h2>Alias Paths</h2>
+  <p>
+  	Alias paths in Grace form a concept that allows filesystem locations
+  	to be more fluid. All classes in grace that deal with paths accept
+  	alias paths in their place. An alias path follow this structure:
+  	<pre>
+      ALIASPATH := ([ALIAS NAME + ':'] + RELATIVE PATH) || (ABSOLUTE PATH)
+    </pre>
+    The <class>application</class> will set up a number of default alias
+    paths for you:
+    
+    <table class="doc">
+      <tr>
+        <th>Alias</th>
+        <th>Resolves to</th>
+        <th>Function</th>
+        <th>Standalone</th>
+      </tr>
+      <tr>
+        <td><file>bin:</file></td>
+        <td><sym>$$PATH</sym></td>
+        <td>Path to Unix commands</td>
+        <td>&#10003;</td>
+      </tr>
+      <tr>
+        <td><file>app:</file></td>
+        <td>App location</td>
+        <td>Access to your app bundle</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td><file>home:</file></td>
+        <td><sym>$$HOME</sym></td>
+        <td>User home directory</td>
+        <td>&#10003;</td>
+      </tr>
+      <tr>
+        <td><file>var:</file></td>
+        <td><file>/var</file> or <file>home:var</file></td>
+        <td>Convenience alias</td>
+        <td>&#10003;</td>
+      </tr>
+      <tr>
+        <td><file>log:</file></td>
+        <td><file>var:log</file></td>
+        <td>Logfile storage</td>
+        <td>&#10003;</td>
+      </tr>
+      <tr>
+        <td><file>rsrc:</file></td>
+        <td><file>app:Contents/Resources</file></td>
+        <td>Convenience alias</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td><file>schema:</file></td>
+        <td><file>app:Contents/Schemas</file></td>
+        <td>Convenience alias</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td><file>conf:</file></td>
+        <td>See <a href="wwg_building_applications.html">here</a></td>
+        <td>Configuration location</td>
+        <td>-</td>
+      </tr>
+    </table>
+    
+    On startup, environment variables that start with <b>_PATH_</b> are
+    taken to be <sym>$$PATH</sym>-like variables enumerating a list of
+    paths an alias should expand to:
+  </p>
+  
+  %terminal aliaspath.out
+  
+  <p>
+	By using alias paths where possible, you give your application a
+	great measure of path-independence, allowing administrators and
+	distribution builders more control over its behavior.
+  </p>
+  
+
+  <h2>Directories</h2>
+  <p>
+	The <sym>fs.ls</sym> call gives you the contents of a directory
+	wrapped in a <class>value</class> object. Typically it looks
+	like this:
+  </p>
+  
+  %xmlcode fs_ls
+	<?xml version="1.0" encoding="UTF-8"?>
+	<dict>
+		<dict id="log">
+			<string id="path">/var/log</string>
+			<long id="inode">2570049</long>
+			<integer id="nlink">53</integer>
+			<integer id="type">2</integer>
+			<unsigned id="mode">493</unsigned>
+			<unsigned id="fuid">0</unsigned>
+			<unsigned id="fgid">0</unsigned>
+			<unsigned id="size">1802</unsigned>
+			<date id="atime">2008-06-28T03:20:22</date>
+			<date id="mtime">2008-06-29T08:00:10</date>
+			<date id="ctime">2008-06-29T08:00:10</date>
+		</dict>
+		<dict id="run">
+			<string id="path">/var/run,/Users/pi/var/run</string>
+			<long id="inode">2991807</long>
+			<integer id="nlink">21</integer>
+			<integer id="type">2</integer>
+			<unsigned id="mode">493</unsigned>
+			<unsigned id="fuid">501</unsigned>
+			<unsigned id="fgid">501</unsigned>
+			<unsigned id="size">714</unsigned>
+			<date id="atime">2008-06-28T03:19:48</date>
+			<date id="mtime">2008-06-21T17:11:50</date>
+			<date id="ctime">2008-06-21T17:11:50</date>
+		</dict>
+		<dict id="opencore">
+			<string id="path">/Users/pi/var/opencore</string>
+			<long id="inode">2991804</long>
+			<integer id="nlink">2</integer>
+			<integer id="type">2</integer>
+			<unsigned id="mode">493</unsigned>
+			<unsigned id="fuid">501</unsigned>
+			<unsigned id="fgid">501</unsigned>
+			<unsigned id="size">68</unsigned>
+			<date id="atime">2008-06-28T03:19:48</date>
+			<date id="mtime">2006-07-10T18:51:14</date>
+			<date id="ctime">2007-11-22T12:38:10</date>
+		</dict>
+	</dict>
+  %endcode
+  
+  <p>
+  	As you may have guessed this is a trimmed listing of the
+  	alias path <file>var:</file>. If you are not interested in
+  	any of the meta-information, you can also use <sym>fs.dir</sym>,
+  	which will only fill in the path variable for each file.
+  </p>
+  
+  <p>
+	The <sym>type</sym> field conforms to an enum which can take
+	the following values:
+	
+	<table class="doc">
+	  <tr>
+	    <th>Enum value</th>
+	    <th>Int value</th>
+	    <th>Node type</th>
+	  </tr>
+	  <tr>
+	    <td><sym>fsUnknown</sym></td>
+	    <td>0</td>
+	    <td>Unknown type</td>
+	  </tr>
+	  <tr>
+	    <td><sym>fsFile</sym></td>
+	    <td>1</td>
+	    <td>Regular file object</td>
+	  </tr>
+	  <tr>
+	    <td><sym>fsDirectory</sym></td>
+	    <td>2</td>
+	    <td>Directory</td>
+	  </tr>
+	  <tr>
+	    <td><sym>fsCharacterDevice</sym></td>
+	    <td>3</td>
+	    <td>Character device node</td>
+	  </tr>
+	  <tr>
+	    <td><sym>fsBlockDevice</sym></td>
+	    <td>4</td>
+	    <td>Block device node</td>
+	  </tr>
+	  <tr>
+	    <td><sym>fsFIFO</sym></td>
+	    <td>5</td>
+	    <td>FIFO</td>
+	  </tr>
+	  <tr>
+	    <td><sym>fsSoftLink</sym></td>
+	    <td>6</td>
+	    <td>Soft link</td>
+	  </tr>
+	  <tr>
+	    <td><sym>fsSocket</sym></td>
+	    <td>7</td>
+	    <td>Unix domain socket</td>
+	  </tr>
+	  <tr>
+	    <td><sym>fsBundle</sym></td>
+	    <td>8</td>
+	    <td>Bundle directory</td>
+	  </tr>
+	</table>
+  </p>
+  
+
+  <h2>Filesystem Manipulation</h2>
+  <p>
+    The <class>filesystem</class> class has methods for tweaking objects
+    on the file system mostly like you'd expect from a shell:
+  </p>
+  
+  %code fsmanip.cpp
+	#include <grace/filesystem.h>
+	
+	bool myApp::makeStorageDir (void)
+	{
+		if (fs.exists ("var:myapp") && fs.isdir ("var:myapp"))
+			return true;
+		
+		if (! fs.isdir ("var:myapp")) fs.rm ("var:myapp");
+		if (! fs.mkdir ("var:myapp")) return false;
+		if (! fs.chown ("var:myapp", "myapp")) return false;
+		if (! fs.chmod ("var:myapp", 0750)) return false;
+		
+		if (fs.exists ("rsrc:storage-skeleton"))
+		{
+			fs.cp ("rsrc:storage-skeleton", "var:myapp/storage");
+		}
+		
+		return true;
+	}
+  %endcode
+  
+
+  <h2>The file Class</h2>
+  <p>
+    Although this is often convenient, the <class>filesystem</class> class
+    only deals with entire files at a time. The <class>file</class> class
+    deals with files at a lower level. Here it is in a nutshell:
+  </p>
+  
+  %code file.cpp
+	file f;
+	
+	// Reading line-by-line
+	if (! f.openread ("myfile")) return false;
+	while (! f.eof())
+	{
+		string ln = f.gets ();
+		fout.writeln (ln);
+	}
+	f.close ();
+	
+	// Binary reading
+	string pngdata;
+	if (! f.openread ("myimage.png")) return false;
+	while (! f.eof())
+	{
+		pngdata.strcat (f.read (1024));
+	}
+	f.close ();
+	fs.save ("loaded.png", pngdata);
+	
+	// Writing line-by-line
+	if (! f.openwrite ("outfile.dat")) return false;
+	f.writeln ("Content-type: image/png");
+	f.writeln ("Content-length: %i" %format (pngdata.strlen()));
+	
+	// Writing a BLOB
+	f.puts (pngdata);
+	f.close ();
+  %endcode	
+  
+  <p>
+	The <class>file</class> constructor can also take a string as an
+	argument, allowing for more convenient binding of a <class>file</class>
+	object to a specific operation on a specific file:
+  </p>
+  
+  %code fileconstruct.cpp
+    file infile ("<in.txt");
+    file outfile (">out.txt");
+  %endcode
+  
+  <p>
+    A file that is open for reading is also iterable on a line-by-line
+    basis, so you can do something like this:
+  </p>
+  
+  %code fileiterate.cpp
+    file infile ("<in.txt");
+    foreach (line, infile)
+    {
+    	fout.writeln (line);
+    }
+  %endcode
+  
+  <h2>Nonblocking Operation</h2>
+  <p>
+	In cases where you are using a <class>file</class> object that is
+	connected to a slow or fallible resource, you may want to deal with
+	i/o operations that time out:
+  </p>
+  
+  %code filetimeouts.cpp
+	// try to read a line
+	string line;
+	if (! myfile.waitforline (line, 100))
+	{
+		myfile.close ();
+		return timeout;
+	}
+
+	int blocksize = line.toint ();
+	
+	// try to read data for max 100 milliseconds
+	string blk = myfile.read (blocksize, 100);
+	if (blk.strlen() == 0)
+	{
+		myfile.close ();
+		return timeout;
+	}
+  %endcode
+  
+  <p>
+    If you use <sym>read</sym> with a timeout, note that you may
+    also receive less than the requested size.
+  </p>
+  
+  <<chapter prev="wwg_string_manipulation.html" next="wwg_networking.html">>
+<</page>>

@@ -1,0 +1,78 @@
+
+@section main
+
+<<page title="examples">>
+  <h1>Examples</h1>
+  <p>
+	The best way to get acquainted with Grace is to see it in action. On this
+	page you will find a number of rudimentary examples of the Grace classes
+	in action.
+  </p>
+  
+  <<toc>>
+
+  <h2>Example 1: Hello World</h2>
+  <p>
+	This is a short 'Hello World' program that splits a string of objects
+	to greet into a value object, then uses foreach to loop through them
+	and uses the %format system to print out individual greetings:
+  </p>
+
+  %include ex1.cpp
+
+  <p>
+	The <b>value</b> class gives you generic data objects that can
+	store direct data or a tree using array or dictionary indexing.
+	The output will look like this:
+  </p>
+
+  %terminal ex1.out
+
+  <h2>Example 2: Command Line Arguments</h2>
+  <p>
+	Let's make things more interesting:
+  </p>
+
+  %include ex2.cpp
+
+  <p>
+	Now we added support for two languages and, by setting the
+	application::opt array sensibly, exported an option flag
+	to the command line. This is the result:
+  </p>
+
+  %terminal ex2.out
+
+  <h2>Example 3: HTTP service</h2>
+  <p>
+	Let's make things a bit more exciting and use the httpd class to
+	serve a dynamic webpage:
+  </p>
+
+  %include ex3.cpp
+
+  <p>
+	The <b>daemon</b> class helps us with spawning to the background
+	and writing to the logfile. This is the result:
+  </p>
+
+  %terminal ex3.out
+
+  <h2>Example 4: Memory database daemon</h2>
+  <p>
+	A more elaborate http-based example, this time we're making a
+	simple http-based memory storage service:
+  </p>
+
+  %include ex4.cpp
+
+  <p>
+	And the output of this one:
+  </p>
+
+  %terminal ex4.out
+
+  <p>
+  &nbsp;
+  </p>
+<</page>>
