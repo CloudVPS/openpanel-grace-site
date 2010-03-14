@@ -29,7 +29,7 @@ int mksiteApp::main (void)
 						 $("</h2>","\">>"));
 		
 		value lines = strutil::splitlines (filedat);
-		outtext.crop ();		
+		outtext.crop ();
 
 		for (int i=0; i<lines.count(); ++i)
 		{
@@ -126,7 +126,7 @@ void mksiteApp::handlecode (value &lines, int &i)
 		ln.chomp();
 		if (ln == "%endcode") break;
 		ln = lines[i].sval().mid(1);
-		ln.replace ($("$","$$"));
+		ln.replace ($("$","$$")->$("@","$atsign$"));
 		outf.writeln (ln);
 	}
 	outf.close ();

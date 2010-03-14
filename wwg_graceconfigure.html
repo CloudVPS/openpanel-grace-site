@@ -1,0 +1,86 @@
+@section main
+<<page title="Cross-Platform Autoconfiguration" idx="15">>
+  <h1>Cross-Platform Autoconfiguration</h1>
+  <p>
+	To facilitate compilation and installation of your software on a
+	diverse set of platforms, most open source software ships with a
+	<b>configure</b> script to autodetect platform-sepcific quirks
+	and installation paths to include in the build process. Grace
+	does not use GNU autoconf for this, it ships with its own set of
+	scripts that are a bit less invasive on the workflow of your build.
+  </p>
+  
+  <<toc>>
+  
+  <h2>Invoking the Configure Script</h2>
+  <p>
+    You can see the optional flags for the configure script as it is
+    built by calling it with the <b>--help</b> flag:
+  </p>
+  
+  %terminal wwg_configure.out
+  
+  <p>
+    Without flags, the script defaults to installation in the <b>/usr/local</b>
+    hierarchy. When building for a system package, a typical set of flags
+    would be: <b>--prefix=/usr --lib-prefix=/usr/lib64 --conf-prefix=/etc/conf</b>.
+  </p>
+  
+  <h2>Recreating From configure.in</h2>
+  <p>
+    The <b>configure.in</b> file is a simple list of checks the <b>configure</b>
+    script is supposed to go through. This is what it looks like in a default
+    project created through <b>grace mkproject</b>:
+  </p>
+    
+  %code configure.in1.cpp
+	cxx
+	grace
+	pthread
+	libsocket
+	libdl
+	libcrypt
+  %endcode
+  
+  <p>
+    Use <b>grace mkconfigure</b> on the command line to recreate the
+    <b>configure</b> script:
+  </p>
+  
+  %terminal wwg_mkconfigure.out
+  
+  <h2>Adding extra libraries</h2>
+  <p>
+    You can add any of the following to <b>configure.in</b> to include
+    extra grace-related libraries to your project:
+  </p>
+  <ul>
+    <li> <b>gracepcre</b> for libgrace-pcre </li>
+    <li> <b>gracessl</b> for libgrace-ssl </li>
+    <li> <b>dbfile</b> for libdbfile </li>
+    <li> <b>querido</b> for libquerido </li>
+  </ul>
+  
+  <h2>Augmenting Flags</h2>
+  <p>
+    You can force <b>grace mkconfigure</b> to add extra flags to
+    a definition that ends up in makeinclude by adding a line
+    starting with a @, followed by the definition. For instance,
+    to add <b>-g</b> to the <b>CXXFLAGS</b> variable, configure.in
+    should look like this:
+  </p>
+  
+  %code configure.in2.cpp
+	cxx
+	grace
+	pthread
+	libsocket
+	libdl
+	libcrypt
+	@CXXFLAGS=-g
+  %endcode
+  
+  <br/>
+  
+  <<chapter prev="wwg_http_server.html" next="">>
+<</page>>

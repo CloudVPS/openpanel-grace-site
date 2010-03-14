@@ -1,0 +1,8 @@
+$$ ./configure --help
+Usage: ./configure [--quiet]             Quiet mode [-q]
+                   [--prefix p]          Set root install-prefix
+                   [--exec-prefix p]     Set executable install-prefix
+                   [--lib-prefix p]      Set library install-prefix
+                   [--conf-prefix p]     Set configuration install-prefix
+                   [--include-prefix p]  Set include-files install-prefix
+                   [--homedir]           Set up for instalation in homedir.

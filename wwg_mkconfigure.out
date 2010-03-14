@@ -1,0 +1,8 @@
+$$ grace mkconfigure
+BASEDIR=/usr/local/lib/grace-configure
+including cxx
+including grace
+including pthread
+including libsocket
+including libdl
+including libcrypt

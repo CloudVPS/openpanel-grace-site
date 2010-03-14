@@ -1,5 +1,8 @@
 
 @section page
+
+@set atsign = "@"
+
 <html>
   <head>
     <link href="index.css" rel="stylesheet" type="text/css" />
