@@ -5,13 +5,13 @@
 //  -------------------------------------------------------------------------
 /// HTTP handler object for a simple in-memor document store
 //  -------------------------------------------------------------------------
-class memstore : public httpdobject
+class MemStore : public httpdobject
 {
 public:
 					 /// Constructor.
 					 /// \param srv Reference to parent httpd.
-					 memstore (httpd &srv);
-					~memstore (void);
+					 MemStore (httpd &srv);
+					~MemStore (void);
 					
 					 /// Run-method.
 					 /// \param uri The request URI
@@ -36,35 +36,35 @@ protected:
 //  -------------------------------------------------------------------------
 /// Main daemon class.
 //  -------------------------------------------------------------------------
-class memstored : public daemon
+class MemStoreDaemon : public daemon
 {
 public:
-					 memstored (void);
-					~memstored (void);
+					 MemStoreDaemon (void);
+					~MemStoreDaemon (void);
 					
 	int				 main (void);
 	httpd			 srv;
 };
 
 // ==========================================================================
-// CONSTRUCTOR memstore
+// CONSTRUCTOR MemStore
 // ==========================================================================
-memstore::memstore (httpd &srv)
+MemStore::MemStore (httpd &srv)
 	: httpdobject (srv, "*")
 {
 }
 
 // ==========================================================================
-// DESTRUCTOR memstore
+// DESTRUCTOR MemStore
 // ==========================================================================
-memstore::~memstore (void)
+MemStore::~MemStore (void)
 {
 }
 
 // ==========================================================================
-// METHOD memstore::put
+// METHOD MemStore::put
 // ==========================================================================
-value *memstore::put (const statstring &uri, const value &dat)
+value *MemStore::put (const statstring &uri, const value &dat)
 {
 	returnclass (value) res retain;
 	
@@ -85,9 +85,9 @@ value *memstore::put (const statstring &uri, const value &dat)
 }
 
 // ==========================================================================
-// METHOD memstore::post
+// METHOD MemStore::post
 // ==========================================================================
-value *memstore::post (const statstring &uri, const value &dat)
+value *MemStore::post (const statstring &uri, const value &dat)
 {
 	returnclass (value) res retain;
 	
@@ -108,9 +108,9 @@ value *memstore::post (const statstring &uri, const value &dat)
 }
 
 // ==========================================================================
-// METHOD memstore::del
+// METHOD MemStore::del
 // ==========================================================================
-value *memstore::del (const statstring &uri)
+value *MemStore::del (const statstring &uri)
 {
 	returnclass (value) res retain;
 	
@@ -131,9 +131,9 @@ value *memstore::del (const statstring &uri)
 }
 
 // ==========================================================================
-// METHOD memstore::run
+// METHOD MemStore::run
 // ==========================================================================
-int memstore::run (string &uri, string &postbody, value &inhdr,
+int MemStore::run (string &uri, string &postbody, value &inhdr,
 				   string &out, value &outhdr, value &env,
 				   tcpsocket &s)
 {
@@ -198,9 +198,9 @@ int memstore::run (string &uri, string &postbody, value &inhdr,
 }
 
 // ==========================================================================
-// CONSTRUCTOR memstored
+// CONSTRUCTOR MemStoreDaemon
 // ==========================================================================
-memstored::memstored (void) : daemon ("memstored")
+MemStoreDaemon::MemStoreDaemon (void) : daemon ("MemStoreDaemon")
 {
 	opt = $("-p", $("long", "--port")) ->
 		  $("-h", $("long", "--help")) ->
@@ -211,16 +211,16 @@ memstored::memstored (void) : daemon ("memstored")
 }
 
 // ==========================================================================
-// DESTRUCTOR memstored
+// DESTRUCTOR MemStoreDaemon
 // ==========================================================================
-memstored::~memstored (void)
+MemStoreDaemon::~MemStoreDaemon (void)
 {
 }
 
 // ==========================================================================
-// METHOD memstored::main
+// METHOD MemStoreDaemon::main
 // ==========================================================================
-int memstored::main (void)
+int MemStoreDaemon::main (void)
 {
 	addlogtarget (log::file, "event.log", log::all);
 	int port = argv["--port"];
@@ -230,7 +230,7 @@ int memstored::main (void)
 	
 	daemonize ();
 	log::write (log::info, "main", "Starting threads");
-	new memstore (srv);
+	new MemStore (srv);
 	srv.start ();
 	
 	while (true)
@@ -247,5 +247,5 @@ int memstored::main (void)
 	return 0;
 }
 
-$appobject (memstored);
+$appobject (MemStoreDaemon);
 $version (1.0);

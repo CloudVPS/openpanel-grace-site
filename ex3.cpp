@@ -3,17 +3,17 @@
 
 /// A serverpage sending out a nice greeting to the world
 /// on the '/' URI.
-class hellopage : public serverpage
+class HelloPage : public serverpage
 {
 public:
 	/// Constructor: Set up serverpage and URI.
 	/// \param pparent The httpd to attach to.
-	hellopage (httpd &pparent) : serverpage (pparent, "/")
+	HelloPage (httpd &pparent) : serverpage (pparent, "/")
 	{
 	}
 	
 	/// Boring virtual destructor.
-	~hellopage (void)
+	~HelloPage (void)
 	{
 	}
 	
@@ -32,11 +32,11 @@ public:
 };
 
 /// Main daemon object.
-class helloserver : public daemon
+class HelloServer : public daemon
 {
 public:
 	/// Constructor. Set up command line arguments.
-	helloserver (void) : daemon ("hello")
+	HelloServer (void) : daemon ("hello")
 	{
 		opt = $("-p", $("long", "--port")) ->
 			  $("-h", $("long", "--help")) ->
@@ -48,7 +48,7 @@ public:
 	}
 	
 	/// Virtual destructor.
-	~helloserver (void)
+	~HelloServer (void)
 	{
 	}
 	
@@ -70,7 +70,7 @@ public:
 		daemonize ();
 		
 		/// Set up the httpd object chain and start the httpd threads.
-		new hellopage (srv);
+		new HelloPage (srv);
 		srv.start ();
 		
 		while (true)
@@ -92,5 +92,5 @@ public:
 	httpd srv;
 };
 
-$appobject (helloserver);
+$appobject (HelloServer);
 $version (1.0);

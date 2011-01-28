@@ -1,13 +1,13 @@
 #include <grace/application.h>
 #include <grace/filesystem.h>
 
-class helloapp : public application
+class HelloApp : public application
 {
 public:
-	helloapp (void) : application ("hello")
+	HelloApp (void) : application ("hello")
 	{
 	}
-	~helloapp (void)
+	~HelloApp (void)
 	{
 	}
 	
@@ -27,4 +27,4 @@ public:
 	}
 };
 
-$appobject (helloapp);
+$appobject (HelloApp);
