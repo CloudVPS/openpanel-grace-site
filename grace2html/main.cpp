@@ -50,7 +50,7 @@ int grace2htmlApp::main (void)
 		$("statstring", 1) ->
 		$("string", 1) ->
 		$("returnclass", 1) ->
-		$("retain") ->
+		$("retain", 1) ->
 		$("foreach", 1) ->
 		$("sharedsection", 1) ->
 		$("exclusivesection", 1) ->
